@@ -1,1 +1,4 @@
 # comp grafica
+
+## libraries
+- pygame
