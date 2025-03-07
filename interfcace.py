@@ -32,10 +32,12 @@ class GraphicsApp:
         self.canvas.bind("<B1-Motion>", self.update_select_area)
         self.canvas.bind("<ButtonRelease-1>", self.finalize_select_area)
 
-        # Store rectangle coordinates
+        # Store rectangle attributes
         self.rect_start = None
         self.rect = None
 
+
+    # MANAGE ARRAYS ---------------------------------------------------------------------------------------
     def add_point(self, event):
         # store new point on array when user clicks
         x, y = event.x, event.y
@@ -52,7 +54,14 @@ class GraphicsApp:
 
         print("--------------- update ------------------")
         print(self.points)
-        
+
+    def merge_selected_points(self):
+        """Merge the selected points back into the original points list."""
+        self.points.extend(self.selected_points)
+        self.selected_points.clear()       
+
+
+    # MANAGE RECTANGLE ------------------------------------------------------------------------------------
     def start_select_area(self, event):
         """Store the start position when the user clicks to define the rectangle."""
         self.rect_start = (event.x, event.y)
@@ -86,12 +95,9 @@ class GraphicsApp:
             self.points = [p for p in self.points if not (x1 <= p.x <= x2 and y1 <= p.y <= y2)]
             print(f"Selected Points: {self.selected_points}")
             print(f"Main Points: {self.points}")
+            
 
-    def merge_selected_points(self):
-        """Merge the selected points back into the original points list."""
-        self.points.extend(self.selected_points)
-        self.selected_points.clear()
-
+    # MANAGE BUTTONS -------------------------------------------------------------------------------------
     def add_buttons(self):
         btn_translate = ttk.Button(self.toolbar, text="Translate", command=self.translate_btn)
         btn_translate.pack(side=tk.LEFT, padx=5, pady=5)
@@ -108,6 +114,7 @@ class GraphicsApp:
     def clear_canvas(self):
         self.canvas.delete("all")
         self.points.clear()
+        self.selected_points.clear()
 
     def translate_btn(self):
         trans = Transformations(self.selected_points)
@@ -118,4 +125,3 @@ class GraphicsApp:
 
         self.canvas.delete("all")
         self.update()
-
