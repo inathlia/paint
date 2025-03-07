@@ -1,4 +1,4 @@
-from interfcace import GraphicsApp
+from interface import GraphicsApp
 
 import tkinter as tk
 
