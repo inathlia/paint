@@ -3,6 +3,7 @@ from tkinter import ttk
 
 from point import Point
 from transformations import Transformations
+from selection import Selector
 
 class GraphicsApp:
     def __init__(self, root):
@@ -26,7 +27,7 @@ class GraphicsApp:
         # Store selected points inside the rectangular area
         self.selected_points = []
 
-        # Bind mouse click event
+        # Bind mouse events
         self.canvas.bind("<Button-1>", self.handle_button_1)
         self.canvas.bind("<B1-Motion>", self.handle_b1_motion)
         self.canvas.bind("<ButtonRelease-1>", self.handle_buttonrelease_1)
@@ -34,24 +35,24 @@ class GraphicsApp:
         self.canvas.bind("<B3-Motion>", self.handle_b3_motion)
         self.canvas.bind("<ButtonRelease-3>", self.handle_buttonrelease_3)
 
-        # Store rectangle attributes
-        self.rect_start = None
-        self.rect = None
-        self.rect_exists = False
+        # Initialize selector
+        self.selector = None
 
+    # Handle mouse events for dragging and selection
     def handle_button_1(self, event):
-        if not self.rect_exists:
+        if self.selector is None:  # Create a new point if no selector exists
             self.add_point(event)
         else:
-            self.start_drag_rectangle(event)
+            self.start_drag_selector(event)
 
     def handle_b1_motion(self, event):
-        self.drag_rectangle(event)
+        if self.selector:
+            self.drag_selector(event)
 
     def handle_buttonrelease_1(self, event):
-        if self.rect_exists:
+        if self.selector:
             self.update_center(event)
-    
+
     def handle_button_3(self, event):
         self.start_select_area(event)
 
@@ -61,10 +62,9 @@ class GraphicsApp:
     def handle_buttonrelease_3(self, event):
         self.finalize_select_area(event)
 
-
-    # MANAGE ARRAYS ---------------------------------------------------------------------------------------
+    # Manage points
     def add_point(self, event):
-        # store new point on array when user clicks
+        # store new point when user clicks
         x, y = event.x, event.y
         point = Point(x, y)
         self.points.append(point)
@@ -73,91 +73,70 @@ class GraphicsApp:
     def update(self):
         # update canvas with points
         self.merge_selected_points()
-
         for p in self.points:
-            self.canvas.create_rectangle(p.x, p.y, p.x+1, p.y+1, fill="black", outline="black")
-
+            self.canvas.create_rectangle(p.x, p.y, p.x + 1, p.y + 1, fill="black", outline="black")
         print("--------------- update ------------------")
         print(self.points)
 
     def merge_selected_points(self):
         """Merge the selected points back into the original points list."""
         self.points.extend(self.selected_points)
-        self.selected_points.clear()       
+        self.selected_points.clear()
 
-
-    # MANAGE RECTANGLE ------------------------------------------------------------------------------------
+    # Manage selector for selection
     def start_select_area(self, event):
-        """Store the start position when the user clicks to define the rectangle."""
+        """Store the start position when the user clicks to define the selector."""
+        if self.selector:
+            self.canvas.delete(self.selector.rect)  # Clear previous selector
         self.rect_start = (event.x, event.y)
-        if self.rect:
-            self.canvas.delete(self.rect)  # Clear previous rectangle
+        self.selector = Selector(self.canvas, event.x, event.y, event.x, event.y)
 
     def update_select_area(self, event):
-        """Update the rectangle as the user drags the mouse."""
-        if self.rect_start:
-            if self.rect:
-                self.canvas.delete(self.rect)
-            x1, y1 = self.rect_start
-            x2, y2 = event.x, event.y
-            self.rect = self.canvas.create_rectangle(x1, y1, x2, y2, outline="pink", width=2)
+        """Update the selector as the user drags the mouse."""
+        if self.selector:
+            self.selector.update_position(self.rect_start[0], self.rect_start[1], event.x, event.y)
 
     def finalize_select_area(self, event):
-        """Finalize the rectangle and store the points inside."""
-        if self.rect_start:
-            x1, y1 = self.rect_start
-            x2, y2 = event.x, event.y
-
-            # Normalize the rectangle coordinates
+        """Finalize the selector and store the points inside."""
+        if self.selector:
+            x1, y1, x2, y2 = self.selector.x1, self.selector.y1, event.x, event.y
             x1, x2 = min(x1, x2), max(x1, x2)
             y1, y2 = min(y1, y2), max(y1, y2)
 
-            # Store selected points inside the rectangle
+            # Store selected points inside the selector
             self.selected_points = [
                 p for p in self.points if x1 <= p.x <= x2 and y1 <= p.y <= y2
             ]
-            # Remove selected points from the original points list
             self.points = [p for p in self.points if not (x1 <= p.x <= x2 and y1 <= p.y <= y2)]
             print(f"Selected Points: {self.selected_points}")
             print(f"Main Points: {self.points}")
+            self.selector.update_position(x1, y1, x2, y2)
 
-            self.center_x_initial = (x1 + x2) / 2
-            self.center_y_initial = (y1 + y2) / 2
-
-            self.rect_exists = True
-            
-    def start_drag_rectangle(self, event):
-        """Start dragging the rectangle when the mouse button is pressed."""
+    def start_drag_selector(self, event):
+        """Start dragging the selector."""
         self.drag_start_x = event.x
         self.drag_start_y = event.y
-        self.rect_start_x, self.rect_start_y, _, _ = self.canvas.coords(self.rect)
+        self.initial_x, self.initial_y = self.selector.get_center()
 
-    def drag_rectangle(self, event):
-        """Move the rectangle as the mouse moves."""
-        dx = event.x - self.drag_start_x
-        dy = event.y - self.drag_start_y
-        self.canvas.move(self.rect, dx, dy)
-        self.drag_start_x = event.x
-        self.drag_start_y = event.y
+    def drag_selector(self, event):
+        """Move the selector as the mouse moves."""
+        if self.selector:
+            dx = event.x - self.drag_start_x
+            dy = event.y - self.drag_start_y
+            self.selector.move(dx, dy)
+            self.drag_start_x = event.x
+            self.drag_start_y = event.y
 
     def update_center(self, event):
-        """Update the center of the rectangle while dragging."""
-        x1, y1, x2, y2 = self.canvas.coords(self.rect)
-        self.center_x_final = (x1 + x2) / 2
-        self.center_y_final = (y1 + y2) / 2
-        print(f"Rectangle center: ({self.center_x_final}, {self.center_y_final})")
+        """Update the center of the selector while dragging."""
+        if self.selector:
+            self.final_x, self.final_y = self.selector.get_center()
+            print(f"selector center: ({self.final_x}, {self.final_y})")
 
-
-    # MANAGE BUTTONS -------------------------------------------------------------------------------------
+    # Buttons and canvas clearing
     def add_buttons(self):
         btn_translate = ttk.Button(self.toolbar, text="Translate", command=self.translate_btn)
         btn_translate.pack(side=tk.LEFT, padx=5, pady=5)
-
-        # btn_rotate = ttk.Button(self.toolbar, text="Rotate", command=self.test_rotate)
-        # btn_rotate.pack(side=tk.LEFT, padx=5, pady=5)
-
-        # btn_scale = ttk.Button(self.toolbar, text="Scale", command=self.test_scale)
-        # btn_scale.pack(side=tk.LEFT, padx=5, pady=5)
 
         btn_clear = ttk.Button(self.toolbar, text="Clear", command=self.clear_canvas)
         btn_clear.pack(side=tk.LEFT, padx=5, pady=5)
@@ -170,8 +149,8 @@ class GraphicsApp:
     def translate_btn(self):
         trans = Transformations(self.selected_points)
 
-        dx = self.center_x_final - self.center_x_initial
-        dy = self.center_y_final - self.center_y_initial
+        dx = self.final_x - self.initial_x
+        dy = self.final_y - self.initial_y
 
         self.selected_points = trans.translate(self.selected_points, dx, dy)
 
