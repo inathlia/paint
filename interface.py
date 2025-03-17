@@ -1,5 +1,5 @@
 import tkinter as tk
-from tkinter import ttk
+from tkinter import ttk, Toplevel
 import tkinter.messagebox as messagebox
 import math
 
@@ -42,6 +42,7 @@ class GraphicsApp:
         self.selector = None
         self.selector_exits = False
         self.is_rotating = False
+        self.selected_axis = 'X' # default value
 
 
     # Handle mouse events ---------------------------------------------------------------------------------------------------------
@@ -187,6 +188,9 @@ class GraphicsApp:
         btn_scale = ttk.Button(self.toolbar, text="Scale", command=self.scale_btn)
         btn_scale.pack(side=tk.LEFT, padx=5, pady=5)
 
+        btn_scale = ttk.Button(self.toolbar, text="Reflect", command=self.reflect_btn)
+        btn_scale.pack(side=tk.LEFT, padx=5, pady=5)
+
         btn_clear = ttk.Button(self.toolbar, text="Clear", command=self.clear_btn)
         btn_clear.pack(side=tk.LEFT, padx=5, pady=5)
 
@@ -205,7 +209,7 @@ class GraphicsApp:
         trans = Transformations(self.selected_points)
 
         if not self.selected_points:
-            messagebox.showinfo("Error", "No points selected for rotation.")("No points selected for rotation.")
+            messagebox.showinfo("Error", "No points selected for translation.")("No points selected for translation.")
             return
 
         dx = self.final_x - self.initial_x
@@ -242,5 +246,78 @@ class GraphicsApp:
         trans = Transformations(self.selected_points)
 
         if not self.selected_points:
-            messagebox.showinfo("Error", "No points selected for rotation.")("No points selected for rotation.")
+            messagebox.showinfo("Error", "No points selected for scale.")("No points selected for scale.")
             return
+        
+        ox = sum(p.x for p in self.selected_points) / len(self.selected_points)
+        oy = sum(p.y for p in self.selected_points) / len(self.selected_points)
+
+        self.selected_points = trans.scale(self.selected_points, 2, 3, origin=(ox, oy))
+
+        print(f"After scalate: {self.selected_points}")
+
+        self.clear_after_operation()
+
+    # def reflect_btn(self):
+    #     trans = Transformations(self.selected_points)
+
+    #     if not self.selected_points:
+    #         messagebox.showinfo("Error", "No points selected for reflection.")("No points selected for reflection.")
+    #         return
+        
+    #     self.selected_points = trans.reflect(self.selected_points, self.selected_axis, self.selector.get_center())
+
+    #     print(f"After reflect: {self.selected_points}")
+
+    #     self.clear_after_operation()
+
+    def reflect_btn(self):
+        # Function to create the pop-up for axis selection
+        def show_radio_selector():
+            popup = Toplevel(self.root)
+            popup.title("Select Reflection Axis")
+
+            # Variable to store the selected axis
+            selected_axis = tk.StringVar()
+            selected_axis.set("X")  # Default selection is "X"
+
+            # Radio button options for X, Y, and XY
+            radio_x = tk.Radiobutton(popup, text="X", variable=selected_axis, value="X")
+            radio_x.pack(anchor="w")
+
+            radio_y = tk.Radiobutton(popup, text="Y", variable=selected_axis, value="Y")
+            radio_y.pack(anchor="w")
+
+            radio_xy = tk.Radiobutton(popup, text="XY", variable=selected_axis, value="XY")
+            radio_xy.pack(anchor="w")
+
+            # OK button to confirm selection
+            ok_button = tk.Button(popup, text="OK", command=lambda: self.apply_reflection(selected_axis.get(), popup))
+            ok_button.pack()
+
+        # Check if points are selected
+        if not self.selected_points:
+            messagebox.showinfo("Error", "No points selected for reflection.")
+            return
+    
+        # Show the radio selector for choosing the reflection axis
+        show_radio_selector()
+
+    def apply_reflection(self, selected_axis, popup):
+        """Apply the reflection based on the selected axis and close the pop-up."""
+        # Close the pop-up
+        popup.destroy()
+        
+        trans = Transformations(self.selected_points)
+
+        # Calculate the center of the selector
+        center = self.selector.get_center()
+
+        # Perform the reflection on the selected points
+        self.selected_points = trans.reflect(self.selected_points, selected_axis, center)
+
+        print(f"After reflection over {selected_axis}: {self.selected_points}")
+
+
+        # Clear the canvas or perform any other action after the operation
+        self.clear_after_operation()
