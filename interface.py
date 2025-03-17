@@ -184,6 +184,9 @@ class GraphicsApp:
         btn_rotate = ttk.Button(self.toolbar, text="Rotate", command=self.rotate_btn)
         btn_rotate.pack(side=tk.LEFT, padx=5, pady=5)
 
+        btn_scale = ttk.Button(self.toolbar, text="Scale", command=self.scale_btn)
+        btn_scale.pack(side=tk.LEFT, padx=5, pady=5)
+
         btn_clear = ttk.Button(self.toolbar, text="Clear", command=self.clear_btn)
         btn_clear.pack(side=tk.LEFT, padx=5, pady=5)
 
@@ -201,6 +204,10 @@ class GraphicsApp:
     def translate_btn(self):
         trans = Transformations(self.selected_points)
 
+        if not self.selected_points:
+            messagebox.showinfo("Error", "No points selected for rotation.")("No points selected for rotation.")
+            return
+
         dx = self.final_x - self.initial_x
         dy = self.final_y - self.initial_y
 
@@ -212,7 +219,8 @@ class GraphicsApp:
         self.clear_after_operation()
 
     def rotate_btn(self):
-        """Handle rotation when the Rotate button is clicked."""
+        trans = Transformations(self.selected_points)
+
         if not self.selected_points:
             messagebox.showinfo("Error", "No points selected for rotation.")("No points selected for rotation.")
             return
@@ -224,9 +232,15 @@ class GraphicsApp:
         ox = sum(p.x for p in self.selected_points) / len(self.selected_points)
         oy = sum(p.y for p in self.selected_points) / len(self.selected_points)
 
-        trans = Transformations(self.selected_points)
         self.selected_points = trans.rotate(self.selected_points, angle, origin=(ox, oy))
 
         print(f"After rotation: {self.selected_points}")
 
         self.clear_after_operation()
+
+    def scale_btn(self):
+        trans = Transformations(self.selected_points)
+
+        if not self.selected_points:
+            messagebox.showinfo("Error", "No points selected for rotation.")("No points selected for rotation.")
+            return
