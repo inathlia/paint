@@ -4,13 +4,12 @@ import math
 from point import Point
 
 class Transformations:
+    # self.points should always be Point type
     def __init__(self, p):
-        if isinstance(p, list) and all(isinstance(item, Point) for item in p):
-            self.points = p  # if p is an array
-        elif isinstance(p, Point):
-            self.points = [p]  # it it's a single point, wrap into an array
+        if isinstance(p, list) and all(isinstance(point, Point) for point in p):
+            self.points = p
         else:
-            self.points = []  # if none, create an empty array
+            raise TypeError("Value must be a list of Point objects")
 
     def translate(self, points, dx, dy):
         """Translates a set of points by (dx, dy)."""
@@ -29,11 +28,13 @@ class Transformations:
         rotated_points = []
         ox, oy = origin
         
-        for x, y in points:
+        for p in points:
             # Apply rotation matrix formula
+            x = p.x
+            y = p.y
             new_x = ox + cos_angle * (x - ox) - sin_angle * (y - oy)
             new_y = oy + sin_angle * (x - ox) + cos_angle * (y - oy)
-            rotated_points.append((new_x, new_y))
+            rotated_points.append(Point(new_x, new_y))
         return rotated_points
 
     def scale(self, points, sx, sy, origin=(0, 0)):

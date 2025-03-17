@@ -5,6 +5,3 @@ class Point:
 
     def __repr__(self):
         return f"Point({self.x}, {self.y})"
-
-    # def to_tuple(self):
-    #     return (self.x, self.y)

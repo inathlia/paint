@@ -1,5 +1,6 @@
 import tkinter as tk
-from tkinter import ttk
+from tkinter import ttk, simpledialog
+import math
 
 from point import Point
 from transformations import Transformations
@@ -37,10 +38,12 @@ class GraphicsApp:
 
         # Initialize selector
         self.selector = None
+        self.selector_exits = False
 
-    # Handle mouse events for dragging and selection
+
+    # Handle mouse events ---------------------------------------------------------------------------------------------------------
     def handle_button_1(self, event):
-        if self.selector is None:  # Create a new point if no selector exists
+        if self.selector_exits == False:  # Create a new point if no selector exists
             self.add_point(event)
         else:
             self.start_drag_selector(event)
@@ -62,7 +65,8 @@ class GraphicsApp:
     def handle_buttonrelease_3(self, event):
         self.finalize_select_area(event)
 
-    # Manage points
+
+    # Manage points ---------------------------------------------------------------------------------------------------------------
     def add_point(self, event):
         # store new point when user clicks
         x, y = event.x, event.y
@@ -74,22 +78,24 @@ class GraphicsApp:
         # update canvas with points
         self.merge_selected_points()
         for p in self.points:
-            self.canvas.create_rectangle(p.x, p.y, p.x + 1, p.y + 1, fill="black", outline="black")
+            self.canvas.create_rectangle(round(p.x), round(p.y), round(p.x + 1), round(p.y + 1), fill="black", outline="black")
         print("--------------- update ------------------")
-        print(self.points)
+        print(self.points) # real value
 
     def merge_selected_points(self):
         """Merge the selected points back into the original points list."""
         self.points.extend(self.selected_points)
         self.selected_points.clear()
 
-    # Manage selector for selection
+
+    # Manage selector for selection -----------------------------------------------------------------------------------------------
     def start_select_area(self, event):
         """Store the start position when the user clicks to define the selector."""
         if self.selector:
             self.canvas.delete(self.selector.rect)  # Clear previous selector
         self.rect_start = (event.x, event.y)
         self.selector = Selector(self.canvas, event.x, event.y, event.x, event.y)
+        self.selector_exits = True
 
     def update_select_area(self, event):
         """Update the selector as the user drags the mouse."""
@@ -133,18 +139,48 @@ class GraphicsApp:
             self.final_x, self.final_y = self.selector.get_center()
             print(f"selector center: ({self.final_x}, {self.final_y})")
 
-    # Buttons and canvas clearing
+    def start_rotation(self, event):
+        """Start rotating the rectangle when Shift + Click is detected."""
+        if self.selector:
+            self.is_rotating = True
+            self.start_angle = math.atan2(event.y - self.selector.center[1], event.x - self.selector.center[0])
+
+    def rotate_rectangle(self, event):
+        """Rotate the rectangle dynamically based on mouse movement."""
+        if self.is_rotating and self.selector:
+            cx, cy = self.selector.center
+            current_angle = math.atan2(event.y - cy, event.x - cx)
+            angle_diff = math.degrees(current_angle - self.start_angle)
+
+            # Rotate the selector
+            self.selector.rotate(angle_diff)
+
+    def stop_rotation(self, event):
+        """Stop rotating the rectangle when mouse button is released."""
+        self.is_rotating = False
+
+
+    # Buttons ---------------------------------------------------------------------------------------------------------------------
     def add_buttons(self):
         btn_translate = ttk.Button(self.toolbar, text="Translate", command=self.translate_btn)
         btn_translate.pack(side=tk.LEFT, padx=5, pady=5)
 
-        btn_clear = ttk.Button(self.toolbar, text="Clear", command=self.clear_canvas)
+        btn_rotate = ttk.Button(self.toolbar, text="Rotate", command=self.rotate_btn)
+        btn_rotate.pack(side=tk.LEFT, padx=5, pady=5)
+
+        btn_clear = ttk.Button(self.toolbar, text="Clear", command=self.clear_btn)
         btn_clear.pack(side=tk.LEFT, padx=5, pady=5)
 
-    def clear_canvas(self):
+    def clear_btn(self):
         self.canvas.delete("all")
         self.points.clear()
         self.selected_points.clear()
+        self.selector_exits = False
+
+    def clear_after_operation(self):
+        self.canvas.delete("all")
+        self.selector_exits = False
+        self.update()
 
     def translate_btn(self):
         trans = Transformations(self.selected_points)
@@ -157,6 +193,26 @@ class GraphicsApp:
         print("--------------- after translation ------------------")
         print(self.selected_points)
 
-        self.canvas.delete("all")
-        self.rect_exists = False
-        self.update()
+        self.clear_after_operation()
+
+    def rotate_btn(self):
+        """Handle rotation when the Rotate button is clicked."""
+        if not self.selected_points:
+            print("No points selected for rotation.")
+            return
+
+        # Get rotation angle from user
+        angle = simpledialog.askfloat("Rotate", "Enter rotation angle (degrees):", minvalue=-360, maxvalue=360)
+        if angle is None:
+            return  # User canceled input
+
+        # Define rotation origin (center of selected points)
+        ox = sum(p.x for p in self.selected_points) / len(self.selected_points)
+        oy = sum(p.y for p in self.selected_points) / len(self.selected_points)
+
+        trans = Transformations(self.selected_points)
+        self.selected_points = trans.rotate(self.selected_points, angle, origin=(ox, oy))
+
+        print(f"After rotation: {self.selected_points}")
+
+        self.clear_after_operation()
