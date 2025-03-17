@@ -34,6 +34,7 @@ class GraphicsApp:
         self.canvas.bind("<B1-Motion>", self.handle_b1_motion)
         self.canvas.bind("<ButtonRelease-1>", self.handle_buttonrelease_1)
         self.canvas.bind("<Shift-Button-1>", self.handle_shift_b1)
+        self.canvas.bind("<Control-Button-1>", self.handle_ctrl_b1)
         self.canvas.bind("<Button-3>", self.handle_button_3)
         self.canvas.bind("<B3-Motion>", self.handle_b3_motion)
         self.canvas.bind("<ButtonRelease-3>", self.handle_buttonrelease_3)
@@ -42,6 +43,9 @@ class GraphicsApp:
         self.selector = None
         self.selector_exits = False
         self.is_rotating = False
+        self.is_resizing = False
+        self.sx = 1
+        self.sy = 1
         self.selected_axis = 'X' # default value
 
 
@@ -53,19 +57,26 @@ class GraphicsApp:
             self.start_drag_selector(event)
 
     def handle_b1_motion(self, event):
-        if self.selector and not self.is_rotating:
+        if self.selector_exits and not self.is_rotating and not self.is_resizing:
             self.drag_selector(event)
-        else:
+        elif self.selector_exits and self.is_rotating:
             self.rotate_rectangle(event)
+        elif self.selector_exits and self.is_resizing:
+            self.resize(event)
 
     def handle_buttonrelease_1(self, event):
         if self.selector:
             self.update_center(event)
         if self.is_rotating:
             self.stop_rotation(event)
+        if self.is_resizing:
+            self.end_resize(event)
 
     def handle_shift_b1(self, event):
         self.start_rotation(event)
+
+    def handle_ctrl_b1(self, event):
+        self.start_resize(event)
 
     def handle_button_3(self, event):
         self.start_select_area(event)
@@ -90,8 +101,8 @@ class GraphicsApp:
         self.merge_selected_points()
         for p in self.points:
             self.canvas.create_rectangle(round(p.x), round(p.y), round(p.x + 1), round(p.y + 1), fill="black", outline="black")
-        print("--------------- update ------------------")
-        print(self.points) # real value
+        # print("--------------- update ------------------")
+        # print(self.points) # real value
 
     def merge_selected_points(self):
         """Merge the selected points back into the original points list."""
@@ -126,8 +137,8 @@ class GraphicsApp:
                 p for p in self.points if x1 <= p.x <= x2 and y1 <= p.y <= y2
             ]
             self.points = [p for p in self.points if not (x1 <= p.x <= x2 and y1 <= p.y <= y2)]
-            print(f"Selected Points: {self.selected_points}")
-            print(f"Main Points: {self.points}")
+            # print(f"Selected Points: {self.selected_points}")
+            # print(f"Main Points: {self.points}")
             self.selector.update_position(x1, y1, x2, y2)
 
     # dragging
@@ -150,7 +161,7 @@ class GraphicsApp:
         """Update the center of the selector while dragging."""
         if self.selector:
             self.final_x, self.final_y = self.selector.get_center()
-            print(f"selector center: ({self.final_x}, {self.final_y})")
+            # print(f"selector center: ({self.final_x}, {self.final_y})")
 
     # rotation
     def start_rotation(self, event):
@@ -176,6 +187,37 @@ class GraphicsApp:
         """Stop rotating the rectangle when mouse button is released."""
         self.is_rotating = False
 
+    # scaling / resizing
+    def start_resize(self, event):
+        self.is_resizing = True
+        # Store initial mouse position and rectangle coordinates
+        self.orig_x2, self.orig_y2 = self.selector.x2, self.selector.y2
+        self.start_x = event.x
+        self.start_y = event.y
+
+    # Function to resize the rectangle based on mouse movement
+    def resize(self, event):
+        # Calculate the new size of the rectangle
+        dx = event.x - self.start_x
+        dy = event.y - self.start_y
+        new_x2 = self.orig_x2 + dx
+        new_y2 = self.orig_y2 + dy
+        
+        # Update the rectangle's coordinates
+        self.selector.update_position(self.selector.x1, self.selector.y1, new_x2, new_y2)
+
+    # Function to end the resizing operation and calculate scaling factors
+    def end_resize(self, event):
+        # Calculate scaling factors based on the new rectangle size
+        new_width = self.selector.x2 - self.selector.x1
+        new_height = self.selector.y2 - self.selector.y1
+        
+        # Calculate scale factors sx, sy
+        self.sx = new_width / (self.orig_x2 - self.selector.x1)
+        self.sy = new_height / (self.orig_y2 - self.selector.y1)
+        
+        # print(f"Scaling factors: sx = {self.sx}, sy = {self.sy}")
+
 
     # Buttons ---------------------------------------------------------------------------------------------------------------------
     def add_buttons(self):
@@ -198,11 +240,23 @@ class GraphicsApp:
         self.canvas.delete("all")
         self.points.clear()
         self.selected_points.clear()
+        self.selector = None
         self.selector_exits = False
+        self.is_rotating = False
+        self.is_resizing = False
+        self.sx = 1
+        self.sy = 1
+        self.selected_axis = 'X'
 
     def clear_after_operation(self):
         self.canvas.delete("all")
+        self.selector = None
         self.selector_exits = False
+        self.is_rotating = False
+        self.is_resizing = False
+        self.sx = 1
+        self.sy = 1
+        self.selected_axis = 'X'
         self.update()
 
     def translate_btn(self):
@@ -217,8 +271,8 @@ class GraphicsApp:
 
         self.selected_points = trans.translate(self.selected_points, dx, dy)
 
-        print("--------------- after translation ------------------")
-        print(self.selected_points)
+        # print("--------------- after translation ------------------")
+        # print(self.selected_points)
 
         self.clear_after_operation()
 
@@ -238,7 +292,7 @@ class GraphicsApp:
 
         self.selected_points = trans.rotate(self.selected_points, angle, origin=(ox, oy))
 
-        print(f"After rotation: {self.selected_points}")
+        # print(f"After rotation: {self.selected_points}")
 
         self.clear_after_operation()
 
@@ -252,24 +306,11 @@ class GraphicsApp:
         ox = sum(p.x for p in self.selected_points) / len(self.selected_points)
         oy = sum(p.y for p in self.selected_points) / len(self.selected_points)
 
-        self.selected_points = trans.scale(self.selected_points, 2, 3, origin=(ox, oy))
+        self.selected_points = trans.scale(self.selected_points, self.sx, self.sy, origin=(ox, oy))
 
-        print(f"After scalate: {self.selected_points}")
+        # print(f"After scalate: {self.selected_points}")
 
         self.clear_after_operation()
-
-    # def reflect_btn(self):
-    #     trans = Transformations(self.selected_points)
-
-    #     if not self.selected_points:
-    #         messagebox.showinfo("Error", "No points selected for reflection.")("No points selected for reflection.")
-    #         return
-        
-    #     self.selected_points = trans.reflect(self.selected_points, self.selected_axis, self.selector.get_center())
-
-    #     print(f"After reflect: {self.selected_points}")
-
-    #     self.clear_after_operation()
 
     def reflect_btn(self):
         # Function to create the pop-up for axis selection
@@ -307,7 +348,7 @@ class GraphicsApp:
         """Apply the reflection based on the selected axis and close the pop-up."""
         # Close the pop-up
         popup.destroy()
-        
+
         trans = Transformations(self.selected_points)
 
         # Calculate the center of the selector
@@ -316,7 +357,7 @@ class GraphicsApp:
         # Perform the reflection on the selected points
         self.selected_points = trans.reflect(self.selected_points, selected_axis, center)
 
-        print(f"After reflection over {selected_axis}: {self.selected_points}")
+        # print(f"After reflection over {selected_axis}: {self.selected_points}")
 
 
         # Clear the canvas or perform any other action after the operation
