@@ -2,10 +2,10 @@ import math
 
 class Selector:
     def __init__(self, canvas, x1, y1, x2, y2):
+        self.outline = "hotpink"
         self.canvas = canvas
-        self.rect = self.canvas.create_rectangle(x1, y1, x2, y2, outline="pink", width=2)
+        self.rect = self.canvas.create_rectangle(x1, y1, x2, y2, outline=self.outline, width=2)
         self.x1, self.y1, self.x2, self.y2 = x1, y1, x2, y2
-        self.rect_exists = True
         self.angle = 0
 
     def get_center(self):
@@ -46,9 +46,9 @@ class Selector:
         rotated_corners = self.rotate_points(corners, angle, (cx, cy))
 
         self.canvas.delete(self.rect)
-        self.rect = self.canvas.create_polygon(rotated_corners, outline="pink", fill="", width=2)
+        self.rect = self.canvas.create_polygon(rotated_corners, outline=self.outline, fill="", width=2)
 
-    # helper function to rotate points around a given origin
+    # aux function to rotate points around a origin
     def rotate_points(self, points, angle, origin):
         angle_rad = math.radians(angle)
         cos_angle = math.cos(angle_rad)

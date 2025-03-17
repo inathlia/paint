@@ -10,26 +10,22 @@ from selection import Selector
 class GraphicsApp:
     def __init__(self, root):
         self.root = root
-        self.root.title("2D Graphics Application")
+        self.root.title("Computer Graphics Application")
 
-        # Create a frame for buttons
+        # toolbar with buttons
         self.toolbar = tk.Frame(root)
         self.toolbar.pack(side=tk.TOP, fill=tk.X)
 
-        # Create buttons
         self.add_buttons()
 
-        # Create a canvas for drawing
+        # canvas
         self.canvas = tk.Canvas(root, bg="white", width=800, height=600)
         self.canvas.pack(fill=tk.BOTH, expand=True)
 
-        # Store points
         self.points = []
-
-        # Store selected points inside the rectangular area
         self.selected_points = []
 
-        # Bind mouse events
+        # bind mouse events
         self.canvas.bind("<Button-1>", self.handle_button_1)
         self.canvas.bind("<B1-Motion>", self.handle_b1_motion)
         self.canvas.bind("<ButtonRelease-1>", self.handle_buttonrelease_1)
@@ -39,19 +35,19 @@ class GraphicsApp:
         self.canvas.bind("<B3-Motion>", self.handle_b3_motion)
         self.canvas.bind("<ButtonRelease-3>", self.handle_buttonrelease_3)
 
-        # Initialize selector
+        # initialize selector
         self.selector = None
         self.selector_exits = False
         self.is_rotating = False
         self.is_resizing = False
-        self.sx = 1
-        self.sy = 1
+        self.sx = 1 # default value
+        self.sy = 1 # default value
         self.selected_axis = 'X' # default value
 
 
-    # Handle mouse events ---------------------------------------------------------------------------------------------------------
+    # Handle events --------------------------------------------------------------------------------------------------------------
     def handle_button_1(self, event):
-        if not self.selector_exits:  # Create a new point if no selector exists
+        if not self.selector_exits:
             self.add_point(event)
         else:
             self.start_drag_selector(event)
@@ -62,7 +58,7 @@ class GraphicsApp:
         elif self.selector_exits and self.is_rotating:
             self.rotate_rectangle(event)
         elif self.selector_exits and self.is_resizing:
-            self.resize(event)
+            self.scale(event)
 
     def handle_buttonrelease_1(self, event):
         if self.selector:
@@ -70,13 +66,13 @@ class GraphicsApp:
         if self.is_rotating:
             self.stop_rotation(event)
         if self.is_resizing:
-            self.end_resize(event)
+            self.end_scale()
 
     def handle_shift_b1(self, event):
         self.start_rotation(event)
 
     def handle_ctrl_b1(self, event):
-        self.start_resize(event)
+        self.start_scale(event)
 
     def handle_button_3(self, event):
         self.start_select_area(event)
@@ -89,135 +85,122 @@ class GraphicsApp:
 
 
     # Manage points ---------------------------------------------------------------------------------------------------------------
+    # store new point when user clicks
     def add_point(self, event):
-        # store new point when user clicks
         x, y = event.x, event.y
         point = Point(x, y)
         self.points.append(point)
         self.update()
 
+    # update canvas with points
     def update(self):
-        # update canvas with points
         self.merge_selected_points()
         for p in self.points:
             self.canvas.create_rectangle(round(p.x), round(p.y), round(p.x + 1), round(p.y + 1), fill="black", outline="black")
-        # print("--------------- update ------------------")
-        # print(self.points) # real value
 
+    # merge selected points into points list
     def merge_selected_points(self):
-        """Merge the selected points back into the original points list."""
         self.points.extend(self.selected_points)
         self.selected_points.clear()
 
 
     # Manage selector for selection -----------------------------------------------------------------------------------------------
-    # select area
+    # selector starts as the pixel where the user clicked
     def start_select_area(self, event):
-        """Store the start position when the user clicks to define the selector."""
         if self.selector:
-            self.canvas.delete(self.selector.rect)  # Clear previous selector
+            # delete if already exist a selector
+            self.canvas.delete(self.selector.rect)
         self.rect_start = (event.x, event.y)
         self.selector = Selector(self.canvas, event.x, event.y, event.x, event.y)
         self.selector_exits = True
 
     def update_select_area(self, event):
-        """Update the selector as the user drags the mouse."""
         if self.selector:
             self.selector.update_position(self.rect_start[0], self.rect_start[1], event.x, event.y)
 
+    # update the selector with last position and store pixels inside
     def finalize_select_area(self, event):
-        """Finalize the selector and store the points inside."""
         if self.selector:
             x1, y1, x2, y2 = self.selector.x1, self.selector.y1, event.x, event.y
             x1, x2 = min(x1, x2), max(x1, x2)
             y1, y2 = min(y1, y2), max(y1, y2)
 
-            # Store selected points inside the selector
+            # divide points that are inside and outside the selector
             self.selected_points = [
                 p for p in self.points if x1 <= p.x <= x2 and y1 <= p.y <= y2
             ]
             self.points = [p for p in self.points if not (x1 <= p.x <= x2 and y1 <= p.y <= y2)]
+
+            self.selector.update_position(x1, y1, x2, y2)
+
             # print(f"Selected Points: {self.selected_points}")
             # print(f"Main Points: {self.points}")
-            self.selector.update_position(x1, y1, x2, y2)
 
     # dragging
     def start_drag_selector(self, event):
-        """Start dragging the selector."""
         self.drag_start_x = event.x
         self.drag_start_y = event.y
         self.initial_x, self.initial_y = self.selector.get_center()
 
     def drag_selector(self, event):
-        """Move the selector as the mouse moves."""
         if self.selector:
             dx = event.x - self.drag_start_x
             dy = event.y - self.drag_start_y
+
             self.selector.move(dx, dy)
+
+            # updates the start for the next drag movement
             self.drag_start_x = event.x
             self.drag_start_y = event.y
 
     def update_center(self, event):
-        """Update the center of the selector while dragging."""
         if self.selector:
             self.final_x, self.final_y = self.selector.get_center()
-            # print(f"selector center: ({self.final_x}, {self.final_y})")
 
     # rotation
     def start_rotation(self, event):
-        """Start rotating the rectangle with a reference angle of 0."""
         if self.selector:
             self.is_rotating = True
-            self.start_angle = 0  # Set initial angle to zero
-            self.start_x, self.start_y = event.x, event.y  # Store initial mouse position
+            self.start_angle = 0  # set initial angle as zero
+            self.start_x, self.start_y = event.x, event.y  # store initial mouse position
 
     def rotate_rectangle(self, event):
-        """Rotate the rectangle based on mouse movement."""
         if self.is_rotating and self.selector:
             dx = event.x - self.start_x
             dy = event.y - self.start_y
 
-            angle_diff = math.degrees(math.atan2(dy, dx))  # Compute new angle from initial position
+            angle_diff = math.degrees(math.atan2(dy, dx))  # calculate new angle from initial position
 
-            # Rotate the selector
             self.selector.rotate(angle_diff)
             self.selector.set_angle(angle_diff)
 
     def stop_rotation(self, event):
-        """Stop rotating the rectangle when mouse button is released."""
         self.is_rotating = False
 
-    # scaling / resizing
-    def start_resize(self, event):
+    # scaling
+    def start_scale(self, event):
         self.is_resizing = True
-        # Store initial mouse position and rectangle coordinates
+        # store x2 and y2 since these will be needed later
         self.orig_x2, self.orig_y2 = self.selector.x2, self.selector.y2
         self.start_x = event.x
         self.start_y = event.y
 
-    # Function to resize the rectangle based on mouse movement
-    def resize(self, event):
-        # Calculate the new size of the rectangle
+    def scale(self, event):
         dx = event.x - self.start_x
         dy = event.y - self.start_y
         new_x2 = self.orig_x2 + dx
         new_y2 = self.orig_y2 + dy
         
-        # Update the rectangle's coordinates
         self.selector.update_position(self.selector.x1, self.selector.y1, new_x2, new_y2)
 
-    # Function to end the resizing operation and calculate scaling factors
-    def end_resize(self, event):
-        # Calculate scaling factors based on the new rectangle size
+    def end_scale(self):
+        # calculate sx and sy based on new rectangle size
         new_width = self.selector.x2 - self.selector.x1
         new_height = self.selector.y2 - self.selector.y1
         
-        # Calculate scale factors sx, sy
         self.sx = new_width / (self.orig_x2 - self.selector.x1)
         self.sy = new_height / (self.orig_y2 - self.selector.y1)
         
-        # print(f"Scaling factors: sx = {self.sx}, sy = {self.sy}")
-
 
     # Buttons ---------------------------------------------------------------------------------------------------------------------
     def add_buttons(self):
@@ -271,9 +254,6 @@ class GraphicsApp:
 
         self.selected_points = trans.translate(self.selected_points, dx, dy)
 
-        # print("--------------- after translation ------------------")
-        # print(self.selected_points)
-
         self.clear_after_operation()
 
     def rotate_btn(self):
@@ -283,16 +263,13 @@ class GraphicsApp:
             messagebox.showinfo("Error", "No points selected for rotation.")("No points selected for rotation.")
             return
 
-        # Get rotation angle from user
         angle = self.selector.get_angle()
 
-        # Define rotation origin (center of selected points)
+        # takes object center as origin
         ox = sum(p.x for p in self.selected_points) / len(self.selected_points)
         oy = sum(p.y for p in self.selected_points) / len(self.selected_points)
 
         self.selected_points = trans.rotate(self.selected_points, angle, origin=(ox, oy))
-
-        # print(f"After rotation: {self.selected_points}")
 
         self.clear_after_operation()
 
@@ -303,26 +280,23 @@ class GraphicsApp:
             messagebox.showinfo("Error", "No points selected for scale.")("No points selected for scale.")
             return
         
+        # takes object center as origin
         ox = sum(p.x for p in self.selected_points) / len(self.selected_points)
         oy = sum(p.y for p in self.selected_points) / len(self.selected_points)
 
-        self.selected_points = trans.scale(self.selected_points, self.sx, self.sy, origin=(ox, oy))
-
-        # print(f"After scalate: {self.selected_points}")
+        self.selected_points = trans.scale(self.selected_points, self.sx, self.sy, (ox, oy))
 
         self.clear_after_operation()
 
     def reflect_btn(self):
-        # Function to create the pop-up for axis selection
+        # pop-up for axis selection
         def show_radio_selector():
             popup = Toplevel(self.root)
             popup.title("Select Reflection Axis")
 
-            # Variable to store the selected axis
             selected_axis = tk.StringVar()
-            selected_axis.set("X")  # Default selection is "X"
+            selected_axis.set("X")  # default
 
-            # Radio button options for X, Y, and XY
             radio_x = tk.Radiobutton(popup, text="X", variable=selected_axis, value="X")
             radio_x.pack(anchor="w")
 
@@ -332,33 +306,24 @@ class GraphicsApp:
             radio_xy = tk.Radiobutton(popup, text="XY", variable=selected_axis, value="XY")
             radio_xy.pack(anchor="w")
 
-            # OK button to confirm selection
             ok_button = tk.Button(popup, text="OK", command=lambda: self.apply_reflection(selected_axis.get(), popup))
             ok_button.pack()
 
-        # Check if points are selected
         if not self.selected_points:
             messagebox.showinfo("Error", "No points selected for reflection.")
             return
-    
-        # Show the radio selector for choosing the reflection axis
+
         show_radio_selector()
 
     def apply_reflection(self, selected_axis, popup):
-        """Apply the reflection based on the selected axis and close the pop-up."""
-        # Close the pop-up
         popup.destroy()
 
         trans = Transformations(self.selected_points)
 
-        # Calculate the center of the selector
-        center = self.selector.get_center()
+        # takes object center as origin
+        ox = sum(p.x for p in self.selected_points) / len(self.selected_points)
+        oy = sum(p.y for p in self.selected_points) / len(self.selected_points)
 
-        # Perform the reflection on the selected points
-        self.selected_points = trans.reflect(self.selected_points, selected_axis, center)
+        self.selected_points = trans.reflect(self.selected_points, selected_axis, (ox, oy))
 
-        # print(f"After reflection over {selected_axis}: {self.selected_points}")
-
-
-        # Clear the canvas or perform any other action after the operation
         self.clear_after_operation()
