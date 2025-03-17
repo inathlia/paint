@@ -1,5 +1,6 @@
 import tkinter as tk
-from tkinter import ttk, simpledialog
+from tkinter import ttk
+import tkinter.messagebox as messagebox
 import math
 
 from point import Point
@@ -64,7 +65,6 @@ class GraphicsApp:
 
     def handle_shift_b1(self, event):
         self.start_rotation(event)
-        print(self.is_rotating)
 
     def handle_button_3(self, event):
         self.start_select_area(event)
@@ -214,7 +214,7 @@ class GraphicsApp:
     def rotate_btn(self):
         """Handle rotation when the Rotate button is clicked."""
         if not self.selected_points:
-            print("No points selected for rotation.")
+            messagebox.showinfo("Error", "No points selected for rotation.")("No points selected for rotation.")
             return
 
         # Get rotation angle from user
