@@ -6,7 +6,17 @@ class Selector:
         self.rect = self.canvas.create_rectangle(x1, y1, x2, y2, outline="pink", width=2)
         self.x1, self.y1, self.x2, self.y2 = x1, y1, x2, y2
         self.rect_exists = True
-        
+        self.angle = 0
+
+    def get_center(self):
+        return (self.x1 + self.x2) / 2, (self.y1 + self.y2) / 2
+    
+    def get_angle(self):
+        return self.angle
+
+    def set_angle(self, angle):
+        self.angle = angle
+
     # function to move the selector around the canvas
     def move(self, dx, dy):
         self.canvas.move(self.rect, dx, dy)
@@ -19,9 +29,6 @@ class Selector:
         self.canvas.coords(self.rect, x1, y1, x2, y2)
         self.x1, self.y1, self.x2, self.y2 = x1, y1, x2, y2
 
-    def get_center(self):
-        return (self.x1 + self.x2) / 2, (self.y1 + self.y2) / 2
-    
     # rotate the selector by angle in degrees
     def rotate(self, angle):
         self.angle += angle  # update total rotation

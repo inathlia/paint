@@ -32,6 +32,7 @@ class GraphicsApp:
         self.canvas.bind("<Button-1>", self.handle_button_1)
         self.canvas.bind("<B1-Motion>", self.handle_b1_motion)
         self.canvas.bind("<ButtonRelease-1>", self.handle_buttonrelease_1)
+        self.canvas.bind("<Shift-Button-1>", self.handle_shift_b1)
         self.canvas.bind("<Button-3>", self.handle_button_3)
         self.canvas.bind("<B3-Motion>", self.handle_b3_motion)
         self.canvas.bind("<ButtonRelease-3>", self.handle_buttonrelease_3)
@@ -39,22 +40,31 @@ class GraphicsApp:
         # Initialize selector
         self.selector = None
         self.selector_exits = False
+        self.is_rotating = False
 
 
     # Handle mouse events ---------------------------------------------------------------------------------------------------------
     def handle_button_1(self, event):
-        if self.selector_exits == False:  # Create a new point if no selector exists
+        if not self.selector_exits:  # Create a new point if no selector exists
             self.add_point(event)
         else:
             self.start_drag_selector(event)
 
     def handle_b1_motion(self, event):
-        if self.selector:
+        if self.selector and not self.is_rotating:
             self.drag_selector(event)
+        else:
+            self.rotate_rectangle(event)
 
     def handle_buttonrelease_1(self, event):
         if self.selector:
             self.update_center(event)
+        if self.is_rotating:
+            self.stop_rotation(event)
+
+    def handle_shift_b1(self, event):
+        self.start_rotation(event)
+        print(self.is_rotating)
 
     def handle_button_3(self, event):
         self.start_select_area(event)
@@ -89,6 +99,7 @@ class GraphicsApp:
 
 
     # Manage selector for selection -----------------------------------------------------------------------------------------------
+    # select area
     def start_select_area(self, event):
         """Store the start position when the user clicks to define the selector."""
         if self.selector:
@@ -118,6 +129,7 @@ class GraphicsApp:
             print(f"Main Points: {self.points}")
             self.selector.update_position(x1, y1, x2, y2)
 
+    # dragging
     def start_drag_selector(self, event):
         """Start dragging the selector."""
         self.drag_start_x = event.x
@@ -139,21 +151,25 @@ class GraphicsApp:
             self.final_x, self.final_y = self.selector.get_center()
             print(f"selector center: ({self.final_x}, {self.final_y})")
 
+    # rotation
     def start_rotation(self, event):
-        """Start rotating the rectangle when Shift + Click is detected."""
+        """Start rotating the rectangle with a reference angle of 0."""
         if self.selector:
             self.is_rotating = True
-            self.start_angle = math.atan2(event.y - self.selector.center[1], event.x - self.selector.center[0])
+            self.start_angle = 0  # Set initial angle to zero
+            self.start_x, self.start_y = event.x, event.y  # Store initial mouse position
 
     def rotate_rectangle(self, event):
-        """Rotate the rectangle dynamically based on mouse movement."""
+        """Rotate the rectangle based on mouse movement."""
         if self.is_rotating and self.selector:
-            cx, cy = self.selector.center
-            current_angle = math.atan2(event.y - cy, event.x - cx)
-            angle_diff = math.degrees(current_angle - self.start_angle)
+            dx = event.x - self.start_x
+            dy = event.y - self.start_y
+
+            angle_diff = math.degrees(math.atan2(dy, dx))  # Compute new angle from initial position
 
             # Rotate the selector
             self.selector.rotate(angle_diff)
+            self.selector.set_angle(angle_diff)
 
     def stop_rotation(self, event):
         """Stop rotating the rectangle when mouse button is released."""
@@ -202,9 +218,7 @@ class GraphicsApp:
             return
 
         # Get rotation angle from user
-        angle = simpledialog.askfloat("Rotate", "Enter rotation angle (degrees):", minvalue=-360, maxvalue=360)
-        if angle is None:
-            return  # User canceled input
+        angle = self.selector.get_angle()
 
         # Define rotation origin (center of selected points)
         ox = sum(p.x for p in self.selected_points) / len(self.selected_points)
