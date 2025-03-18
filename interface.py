@@ -6,6 +6,8 @@ import math
 from point import Point
 from transformations import Transformations
 from selection import Selector
+from rasterization.line import Line
+from rasterization.circle import Circle
 
 class GraphicsApp:
     def __init__(self, root):
@@ -103,6 +105,9 @@ class GraphicsApp:
         self.points.extend(self.selected_points)
         self.selected_points.clear()
 
+    def draw_points(self, points, color="purple"):
+        for p in points:
+            self.canvas.create_oval(p.x, p.y, p.x + 1, p.y + 1, fill=color, outline=color)
 
     # Manage selector for selection -----------------------------------------------------------------------------------------------
     # selector starts as the pixel where the user clicked
@@ -133,8 +138,8 @@ class GraphicsApp:
 
             self.selector.update_position(x1, y1, x2, y2)
 
-            # print(f"Selected Points: {self.selected_points}")
-            # print(f"Main Points: {self.points}")
+            print(f"Selected Points: {self.selected_points}")
+            print(f"Main Points: {self.points}")
 
     ## dragging
     def start_drag_selector(self, event):
@@ -217,6 +222,12 @@ class GraphicsApp:
         btn_scale = ttk.Button(self.toolbar, text="Reflect", command=self.reflect_btn)
         btn_scale.pack(side=tk.LEFT, padx=5, pady=5)
 
+        btn_scale = ttk.Button(self.toolbar, text="Line", command=self.line_btn)
+        btn_scale.pack(side=tk.LEFT, padx=5, pady=5)
+
+        # btn_scale = ttk.Button(self.toolbar, text="Circle", command=self.circle_btn)
+        # btn_scale.pack(side=tk.LEFT, padx=5, pady=5)
+
         btn_clear = ttk.Button(self.toolbar, text="Clear", command=self.clear_btn)
         btn_clear.pack(side=tk.LEFT, padx=5, pady=5)
 
@@ -248,7 +259,7 @@ class GraphicsApp:
         trans = Transformations(self.selected_points)
 
         if not self.selected_points:
-            messagebox.showinfo("Error", "No points selected for translation.")("No points selected for translation.")
+            messagebox.showinfo("Error", "No points selected for translation.")
             return
 
         dx = self.final_x - self.initial_x
@@ -262,7 +273,7 @@ class GraphicsApp:
         trans = Transformations(self.selected_points)
 
         if not self.selected_points:
-            messagebox.showinfo("Error", "No points selected for rotation.")("No points selected for rotation.")
+            messagebox.showinfo("Error", "No points selected for rotation.")
             return
 
         angle = self.selector.get_angle()
@@ -279,7 +290,7 @@ class GraphicsApp:
         trans = Transformations(self.selected_points)
 
         if not self.selected_points:
-            messagebox.showinfo("Error", "No points selected for scale.")("No points selected for scale.")
+            messagebox.showinfo("Error", "No points selected for scale.")
             return
         
         # takes object center as origin
@@ -296,19 +307,19 @@ class GraphicsApp:
             popup = Toplevel(self.root)
             popup.title("Select Reflection Axis")
 
-            selected_axis = tk.StringVar()
-            selected_axis.set("X")  # default
+            select = tk.StringVar()
+            select.set("X")  # default
 
-            radio_x = tk.Radiobutton(popup, text="X", variable=selected_axis, value="X")
+            radio_x = tk.Radiobutton(popup, text="X", variable=select, value="X")
             radio_x.pack(anchor="w")
 
-            radio_y = tk.Radiobutton(popup, text="Y", variable=selected_axis, value="Y")
+            radio_y = tk.Radiobutton(popup, text="Y", variable=select, value="Y")
             radio_y.pack(anchor="w")
 
-            radio_xy = tk.Radiobutton(popup, text="XY", variable=selected_axis, value="XY")
+            radio_xy = tk.Radiobutton(popup, text="XY", variable=select, value="XY")
             radio_xy.pack(anchor="w")
 
-            ok_button = tk.Button(popup, text="OK", command=lambda: self.apply_reflection(selected_axis.get(), popup))
+            ok_button = tk.Button(popup, text="OK", command=lambda: self.apply_reflection(select.get(), popup))
             ok_button.pack()
 
         if not self.selected_points:
@@ -316,8 +327,7 @@ class GraphicsApp:
             return
 
         show_radio_selector()
-
-    def apply_reflection(self, selected_axis, popup):
+    def apply_reflection(self, select, popup):
         popup.destroy()
 
         trans = Transformations(self.selected_points)
@@ -326,9 +336,44 @@ class GraphicsApp:
         ox = sum(p.x for p in self.selected_points) / len(self.selected_points)
         oy = sum(p.y for p in self.selected_points) / len(self.selected_points)
 
-        self.selected_points = trans.reflect(self.selected_points, selected_axis, (ox, oy))
+        self.selected_points = trans.reflect(self.selected_points, select, (ox, oy))
 
         self.clear_after_operation()
 
     # rasterization
-    
+    def line_btn(self):
+        # pop-up for line algorithm
+        def show_radio_selector():
+            popup = Toplevel(self.root)
+            popup.title("Select Line Plot Algorithm")
+
+            select = tk.StringVar()
+            select.set("DDA")  # default
+
+            radio_x = tk.Radiobutton(popup, text="DDA", variable=select, value="DDA")
+            radio_x.pack(anchor="w")
+
+            radio_y = tk.Radiobutton(popup, text="Bresenham", variable=select, value="Bresenham")
+            radio_y.pack(anchor="w")
+
+            ok_button = tk.Button(popup, text="OK", command=lambda: self.plot_line(select.get(), popup))
+            ok_button.pack()
+
+        if len(self.selected_points) != 2:
+            messagebox.showinfo("Error", "Please select only 2 points.")
+            return
+        show_radio_selector()
+    def plot_line(self, select, popup):
+        popup.destroy()
+
+        l = Line(self.selected_points[0], self.selected_points[1])
+
+        if select == "DDA":
+            line = l.dda()
+        else:
+            print(f"l.p1: {l.p1}, l.p2: {l.p2}")
+            line = l.bresenham()
+        
+        self.draw_points(line)
+
+        

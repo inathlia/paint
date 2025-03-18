@@ -33,16 +33,15 @@ class Line:
         return line 
 
     def bresenham(self):
+        print(f"self.p1: {self.p1}, self.p2: {self.p2}")
         line = []
 
         x1, y1 = self.p1.x, self.p1.y
         x2, y2 = self.p2.x, self.p2.y
 
-        dx = abs(x2 - x1)
-        dy = abs(y2 - y1)
-
-        # x_inc = 1 if dx >= 0 else -1
-        # y_inc = 1 if y2 > y1 else -1
+        dx = x2 - x1
+        dy = y2 - y1
+        print(f"dx: {dx}, dy: {dy}")
 
         if dx >= 0:
             x_inc = 1
@@ -56,7 +55,7 @@ class Line:
             y_inc = -1
             dy = -dy
 
-        x, y = x1, x2
+        x, y = x1, y1
         line.append(Point(x,y))
 
         if dy < dx:
@@ -85,3 +84,4 @@ class Line:
                     x += x_inc
                     p += const2
                 line.append(Point(x,y))
+        return line
