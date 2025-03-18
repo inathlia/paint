@@ -136,7 +136,7 @@ class GraphicsApp:
             # print(f"Selected Points: {self.selected_points}")
             # print(f"Main Points: {self.points}")
 
-    # dragging
+    ## dragging
     def start_drag_selector(self, event):
         self.drag_start_x = event.x
         self.drag_start_y = event.y
@@ -177,7 +177,7 @@ class GraphicsApp:
     def stop_rotation(self, event):
         self.is_rotating = False
 
-    # scaling
+    ## scaling
     def start_scale(self, event):
         self.is_resizing = True
         # store x2 and y2 since these will be needed later
@@ -203,6 +203,7 @@ class GraphicsApp:
         
 
     # Buttons ---------------------------------------------------------------------------------------------------------------------
+    ## base
     def add_buttons(self):
         btn_translate = ttk.Button(self.toolbar, text="Translate", command=self.translate_btn)
         btn_translate.pack(side=tk.LEFT, padx=5, pady=5)
@@ -242,6 +243,7 @@ class GraphicsApp:
         self.selected_axis = 'X'
         self.update()
 
+    # transformation
     def translate_btn(self):
         trans = Transformations(self.selected_points)
 
@@ -327,3 +329,6 @@ class GraphicsApp:
         self.selected_points = trans.reflect(self.selected_points, selected_axis, (ox, oy))
 
         self.clear_after_operation()
+
+    # rasterization
+    
