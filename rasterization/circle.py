@@ -1,15 +1,17 @@
+import math
+
 from point import Point
 
 class Circle:
     def __init__(self, p, r, color="purple"):
-        if isinstance(p, Point):
+        if isinstance(p, Point) and isinstance(r, Point):
             self.p = p
-            self.r = r
+            self.r = math.sqrt(abs(p.x - r.x)**2 + abs(p.y - r.y)**2)
             self.color = color
             self.circ = []
         else:
-            raise TypeError("p1 and p2 must be Point type")
-        
+            raise TypeError("p and r must be Point type")
+
     def bresenham(self):
         x, y = 0, self.r
         xc, yc = self.p.x, self.p.y
@@ -25,6 +27,8 @@ class Circle:
                 y-= 1
             x += 1
             self.plot_simetric(x, y, xc, yc)
+        
+        return self.circ
         
     def plot_simetric(self, x, y, xc, yc):
         points = [

@@ -33,7 +33,6 @@ class Line:
         return line 
 
     def bresenham(self):
-        print(f"self.p1: {self.p1}, self.p2: {self.p2}")
         line = []
 
         x1, y1 = self.p1.x, self.p1.y
@@ -41,7 +40,6 @@ class Line:
 
         dx = x2 - x1
         dy = y2 - y1
-        print(f"dx: {dx}, dy: {dy}")
 
         if dx >= 0:
             x_inc = 1

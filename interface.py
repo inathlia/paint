@@ -106,8 +106,12 @@ class GraphicsApp:
         self.selected_points.clear()
 
     def draw_points(self, points, color="purple"):
+        self.canvas.delete(self.selector.rect)
+        self.selector_exits = False
         for p in points:
             self.canvas.create_oval(p.x, p.y, p.x + 1, p.y + 1, fill=color, outline=color)
+            self.points.append(p)
+        self.merge_selected_points()
 
     # Manage selector for selection -----------------------------------------------------------------------------------------------
     # selector starts as the pixel where the user clicked
@@ -115,6 +119,7 @@ class GraphicsApp:
         if self.selector:
             # delete if already exist a selector
             self.canvas.delete(self.selector.rect)
+            self.merge_selected_points()
         self.rect_start = (event.x, event.y)
         self.selector = Selector(self.canvas, event.x, event.y, event.x, event.y)
         self.selector_exits = True
@@ -138,8 +143,8 @@ class GraphicsApp:
 
             self.selector.update_position(x1, y1, x2, y2)
 
-            print(f"Selected Points: {self.selected_points}")
-            print(f"Main Points: {self.points}")
+            # print(f"Selected Points: {self.selected_points}")
+            # print(f"Main Points: {self.points}")
 
     ## dragging
     def start_drag_selector(self, event):
@@ -225,8 +230,8 @@ class GraphicsApp:
         btn_scale = ttk.Button(self.toolbar, text="Line", command=self.line_btn)
         btn_scale.pack(side=tk.LEFT, padx=5, pady=5)
 
-        # btn_scale = ttk.Button(self.toolbar, text="Circle", command=self.circle_btn)
-        # btn_scale.pack(side=tk.LEFT, padx=5, pady=5)
+        btn_scale = ttk.Button(self.toolbar, text="Circle", command=self.circle_btn)
+        btn_scale.pack(side=tk.LEFT, padx=5, pady=5)
 
         btn_clear = ttk.Button(self.toolbar, text="Clear", command=self.clear_btn)
         btn_clear.pack(side=tk.LEFT, padx=5, pady=5)
@@ -371,9 +376,19 @@ class GraphicsApp:
         if select == "DDA":
             line = l.dda()
         else:
-            print(f"l.p1: {l.p1}, l.p2: {l.p2}")
             line = l.bresenham()
         
         self.draw_points(line)
 
+    def circle_btn(self):
+        if len(self.selected_points) != 2:
+            messagebox.showinfo("Error", "Please select only 2 points.")
+            return
+        
+        # 1st point selected is the center and the 2nd will define the radius length
+        c = Circle(self.selected_points[0], self.selected_points[1])
+
+        circle = c.bresenham()
+
+        self.draw_points(circle)
         
