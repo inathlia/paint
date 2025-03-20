@@ -8,70 +8,95 @@ RIGHT = 2   # 0010
 BOTTOM = 4  # 0100
 TOP = 8     # 1000
 class Cutting:
-    def __init__(self, p1, p2, pmin, pmax):
-        if isinstance(p1, Point) and isinstance(p2, Point) and isinstance(pmin, Point) and isinstance(pmax, Point):
-            self.p1 = p1
-            self.p2 = p2
+    def __init__(self, objects, pmin, pmax):
+        if isinstance(pmin, Point) and isinstance(pmax, Point):
+            self.objects = objects
             self.pmin = pmin
             self.pmax = pmax
+        else:
+            raise TypeError("pmin and pmax must be Point type")
 
-    def get_code(p, pmin, pmax):
+    # gets an array of objects and return an array of cutted objects
+    def cohen(self):
+        new_objects = []
+        for o in self.objects:
+            if isinstance(o, Line):
+                new_line = self.run_cohen(o.p1, o.p2)
+                new_objects.append(new_line)
+            else:
+                # nothing happens
+                new_objects.append(o)
+        return new_objects
+
+    # gets an array of objects and return an array of cutted objects
+    def liang(self):
+        new_objects = []
+        for o in self.objects:
+            if isinstance(o, Line):
+                new_line = self.run_liang(o.p1, o.p2)
+                new_objects.append(new_line)
+            else:
+                # nothing happens
+                new_objects.append(o)
+        return new_objects
+
+    def get_code(self, p):
         code = INSIDE
-        if p.x < pmin.x:
+        if p.x < self.pmin.x:
             code |= LEFT
-        elif p.x > pmax.x:
+        elif p.x > self.pmax.x:
             code |= RIGHT
-        if p.y < pmin.y:
+        if p.y < self.pmin.y:
             code |= BOTTOM
-        elif p.y > pmax.y:
+        elif p.y > self.pmax.y:
             code |= TOP
         return code
     
-    def bit(position, value):
+    def bit(self, position, value):
         return (value >> position) & 1
 
-    def cohen(self):
+    def run_cohen(self, p1, p2):
         done = False
-        accept = True
+        accept = False
         line = []
 
         while not done:
-            cod1 = self.getCode(self.p1, self.pmin, self.pmax)
-            cod2 = self.getCode(self.p2, self.pmin, self.pmax)
+            cod1 = self.get_code(p1)
+            cod2 = self.get_code(p2)
 
             if cod1 == INSIDE and cod2 == INSIDE: # inside
                 done = True
                 accept = True
-            elif cod1 and cod2 != INSIDE: # out
+            elif cod1 & cod2 != INSIDE: # out
                 done = True
             else: # calc
                 cod = cod1 if cod1 != 0 else cod2
 
                 if self.bit(0, cod): # left
                     xint = self.pmin.x
-                    yint = self.p1.y + (self.p2.y - self.p1.y) * (self.pmin.x - self.p1.x) / (self.p2.x - self.p1.x)
+                    yint = p1.y + (p2.y - p1.y) * (self.pmin.x - p1.x) / (p2.x - p1.x)
                 elif self.bit(1, cod): # right
                     xint = self.pmax.x
-                    yint = self.p1.y + (self.p2.y - self.p1.y) * (self.pmax.x - self.p1.x) / (self.p2.x - self.p1.x)
+                    yint = p1.y + (p2.y - p1.y) * (self.pmax.x - p1.x) / (p2.x - p1.x)
                 elif self.bit(2, cod): # bottom
                     yint = self.pmin.y
-                    xint = self.p1.x + (self.p2.x - self.p1.x) * (self.pmin.y - self.p1.y) / (self.p2.y - self.p1.y)
+                    xint = p1.x + (p2.x - p1.x) * (self.pmin.y - p1.y) / (p2.y - p1.y)
                 elif self.bit(3, cod): # top
                     yint = self.pmax.y
-                    xint = self.p1.x + (self.p2.x - self.p1.x) * (self.pmax.y - self.p1.y) / (self.p2.y - self.p1.y)
+                    xint = p1.x + (p2.x - p1.x) * (self.pmax.y - p1.y) / (p2.y - p1.y)
 
                 if cod == cod1:
-                    self.p1.x, self.p1.y = xint, yint
+                    p1.x, p1.y = xint, yint
                 else:
-                    self.p2.x, self.p2.y = xint, yint
+                    p2.x, p2.y = xint, yint
         
         if accept:
-            # call dda function to add pixels on array
-            line = Line(self.p1, self.p2).dda()
+            # return line object
+            line = Line(p1, p2)
             return line
         
     # STILL HAVE TO ADAPT THE USE OF POINTER OF U1 AND U2!!!!!!!!!!!!!!!!
-    def clip_test(p, q, u1, u2):
+    def clip_test(self, p, q, u1, u2):
         result = True
 
         if p == 0 and q < 0:
@@ -90,21 +115,21 @@ class Cutting:
                 u2 = r
         return result 
 
-    def liang(self):
-        dx = self.p2.x - self.p1.x
-        dy = self.p2.y - self.p1.y
+    def run_liang(self, p1, p2):
+        dx = p2.x - p1.x
+        dy = p2.y - p1.y
         u1 = 0
         u2 = 1
 
-        if self.clip_test(-dx, self.p1.x - self.pmin.x, u1, u2): # left
-            if self.clip_test(dx, self.pmax.x - self.p1.x, u1, u2): # right
-                if self.clip_test(-dy, self.p1.y - self.pmin.y, u1, u2): # bottom
-                    if self.clip_test(dy, self.pmax.y - self.p1.y, u1, u2): # top
+        if self.clip_test(-dx, p1.x - self.pmin.x, u1, u2): # left
+            if self.clip_test(dx, self.pmax.x - p1.x, u1, u2): # right
+                if self.clip_test(-dy, p1.y - self.pmin.y, u1, u2): # bottom
+                    if self.clip_test(dy, self.pmax.y - p1.y, u1, u2): # top
                         if u2 < 1:
-                            self.p2.x = self.p1.x + dx * u2
-                            self.p2.y = self.p1.y + dy * u2
+                            p2.x = p1.x + dx * u2
+                            p2.y = p1.y + dy * u2
                         if u1 > 0:
-                            self.p1.x = self.p1.x + dx * u1
-                            self.p1.y = self.p1.y + dy * u1
-                        line = Line(self.p1, self.p2).dda()
+                            p1.x = p1.x + dx * u1
+                            p1.y = p1.y + dy * u1
+                        line = Line(p1, p2)
                         return line

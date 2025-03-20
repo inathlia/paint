@@ -9,6 +9,7 @@ class Line:
         else:
             raise TypeError("p1 and p2 must be Point type")
 
+    # returns a Point array
     def dda(self):
         line = []
 
@@ -18,7 +19,7 @@ class Line:
         dx = x2 - x1
         dy = y2 - y1
 
-        steps = abs(dx) if abs(dx) > abs(dy) else abs(dy)
+        steps = int(abs(dx)) if abs(dx) > abs(dy) else int(abs(dy))
 
         x_inc = dx / steps
         y_inc = dy / steps
@@ -31,7 +32,7 @@ class Line:
             y += y_inc
             line.append(Point(x,y))
         return line 
-
+    # returns a Point array
     def bresenham(self):
         line = []
 

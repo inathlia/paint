@@ -8,6 +8,7 @@ from transformations import Transformations
 from selection import Selector
 from rasterization.line import Line
 from rasterization.circle import Circle
+from cutting import Cutting
 
 class GraphicsApp:
     def __init__(self, root):
@@ -26,6 +27,7 @@ class GraphicsApp:
 
         self.points = []
         self.selected_points = []
+        self.objects = [] # store lines and circles points inside the canvas
 
         # bind mouse events
         self.canvas.bind("<Button-1>", self.handle_button_1)
@@ -86,7 +88,58 @@ class GraphicsApp:
         self.finalize_select_area(event)
 
 
-    # Manage points ---------------------------------------------------------------------------------------------------------------
+    # Buttons ---------------------------------------------------------------------------------------------------------------------
+    def add_buttons(self):
+        btn_translate = ttk.Button(self.toolbar, text="Translate", command=self.translate_btn)
+        btn_translate.pack(side=tk.LEFT, padx=5, pady=5)
+
+        btn_rotate = ttk.Button(self.toolbar, text="Rotate", command=self.rotate_btn)
+        btn_rotate.pack(side=tk.LEFT, padx=5, pady=5)
+
+        btn_scale = ttk.Button(self.toolbar, text="Scale", command=self.scale_btn)
+        btn_scale.pack(side=tk.LEFT, padx=5, pady=5)
+
+        btn_scale = ttk.Button(self.toolbar, text="Reflect", command=self.reflect_btn)
+        btn_scale.pack(side=tk.LEFT, padx=5, pady=5)
+
+        btn_scale = ttk.Button(self.toolbar, text="Line", command=self.line_btn)
+        btn_scale.pack(side=tk.LEFT, padx=5, pady=5)
+
+        btn_scale = ttk.Button(self.toolbar, text="Circle", command=self.circle_btn)
+        btn_scale.pack(side=tk.LEFT, padx=5, pady=5)
+
+        btn_scale = ttk.Button(self.toolbar, text="Cut", command=self.cut_btn)
+        btn_scale.pack(side=tk.LEFT, padx=5, pady=5)
+
+        btn_clear = ttk.Button(self.toolbar, text="Clear", command=self.clear_btn)
+        btn_clear.pack(side=tk.LEFT, padx=5, pady=5)
+
+    def clear_btn(self):
+        self.canvas.delete("all")
+        self.points.clear()
+        self.selected_points.clear()
+        self.objects.clear()
+        self.selector = None
+        self.selector_exits = False
+        self.is_rotating = False
+        self.is_resizing = False
+        self.sx = 1
+        self.sy = 1
+        self.selected_axis = 'X'
+
+    def clear_after_operation(self):
+        self.canvas.delete("all")
+        self.selector = None
+        self.selector_exits = False
+        self.is_rotating = False
+        self.is_resizing = False
+        self.sx = 1
+        self.sy = 1
+        self.selected_axis = 'X'
+        self.update()
+
+
+    # Manage points and objects ---------------------------------------------------------------------------------------------------
     # store new point when user clicks
     def add_point(self, event):
         x, y = event.x, event.y
@@ -99,6 +152,8 @@ class GraphicsApp:
         self.merge_selected_points()
         for p in self.points:
             self.canvas.create_rectangle(round(p.x), round(p.y), round(p.x + 1), round(p.y + 1), fill="black", outline="black")
+
+        # print(f"Objects: {self.objects}")
 
     # merge selected points into points list
     def merge_selected_points(self):
@@ -113,6 +168,15 @@ class GraphicsApp:
             self.points.append(p)
         self.merge_selected_points()
 
+    def draw_objects(self):
+        self.canvas.delete("all")
+        for o in self.objects:
+            if isinstance(o, Line):
+                line = o.dda()
+                self.draw_points(line)
+            if isinstance(o, Circle):
+                circle = o.bresenham()
+                self.draw_points(circle)
     # Manage selector for selection -----------------------------------------------------------------------------------------------
     # selector starts as the pixel where the user clicked
     def start_select_area(self, event):
@@ -146,7 +210,7 @@ class GraphicsApp:
             # print(f"Selected Points: {self.selected_points}")
             # print(f"Main Points: {self.points}")
 
-    ## dragging
+    # dragging
     def start_drag_selector(self, event):
         self.drag_start_x = event.x
         self.drag_start_y = event.y
@@ -187,7 +251,7 @@ class GraphicsApp:
     def stop_rotation(self, event):
         self.is_rotating = False
 
-    ## scaling
+    # scaling
     def start_scale(self, event):
         self.is_resizing = True
         # store x2 and y2 since these will be needed later
@@ -212,53 +276,7 @@ class GraphicsApp:
         self.sy = new_height / (self.orig_y2 - self.selector.y1)
         
 
-    # Buttons ---------------------------------------------------------------------------------------------------------------------
-    ## base
-    def add_buttons(self):
-        btn_translate = ttk.Button(self.toolbar, text="Translate", command=self.translate_btn)
-        btn_translate.pack(side=tk.LEFT, padx=5, pady=5)
-
-        btn_rotate = ttk.Button(self.toolbar, text="Rotate", command=self.rotate_btn)
-        btn_rotate.pack(side=tk.LEFT, padx=5, pady=5)
-
-        btn_scale = ttk.Button(self.toolbar, text="Scale", command=self.scale_btn)
-        btn_scale.pack(side=tk.LEFT, padx=5, pady=5)
-
-        btn_scale = ttk.Button(self.toolbar, text="Reflect", command=self.reflect_btn)
-        btn_scale.pack(side=tk.LEFT, padx=5, pady=5)
-
-        btn_scale = ttk.Button(self.toolbar, text="Line", command=self.line_btn)
-        btn_scale.pack(side=tk.LEFT, padx=5, pady=5)
-
-        btn_scale = ttk.Button(self.toolbar, text="Circle", command=self.circle_btn)
-        btn_scale.pack(side=tk.LEFT, padx=5, pady=5)
-
-        btn_clear = ttk.Button(self.toolbar, text="Clear", command=self.clear_btn)
-        btn_clear.pack(side=tk.LEFT, padx=5, pady=5)
-
-    def clear_btn(self):
-        self.canvas.delete("all")
-        self.points.clear()
-        self.selected_points.clear()
-        self.selector = None
-        self.selector_exits = False
-        self.is_rotating = False
-        self.is_resizing = False
-        self.sx = 1
-        self.sy = 1
-        self.selected_axis = 'X'
-
-    def clear_after_operation(self):
-        self.canvas.delete("all")
-        self.selector = None
-        self.selector_exits = False
-        self.is_rotating = False
-        self.is_resizing = False
-        self.sx = 1
-        self.sy = 1
-        self.selected_axis = 'X'
-        self.update()
-
+    # Operations ------------------------------------------------------------------------------------------------------------------
     # transformation
     def translate_btn(self):
         trans = Transformations(self.selected_points)
@@ -355,10 +373,10 @@ class GraphicsApp:
             select = tk.StringVar()
             select.set("DDA")  # default
 
-            radio_x = tk.Radiobutton(popup, text="DDA", variable=select, value="DDA")
+            radio_x = tk.Radiobutton(popup, text="DDA", variable=select, value="dda")
             radio_x.pack(anchor="w")
 
-            radio_y = tk.Radiobutton(popup, text="Bresenham", variable=select, value="Bresenham")
+            radio_y = tk.Radiobutton(popup, text="Bresenham", variable=select, value="bres")
             radio_y.pack(anchor="w")
 
             ok_button = tk.Button(popup, text="OK", command=lambda: self.plot_line(select.get(), popup))
@@ -372,8 +390,9 @@ class GraphicsApp:
         popup.destroy()
 
         l = Line(self.selected_points[0], self.selected_points[1])
+        self.objects.append(l)
 
-        if select == "DDA":
+        if select == "dda":
             line = l.dda()
         else:
             line = l.bresenham()
@@ -387,8 +406,60 @@ class GraphicsApp:
         
         # 1st point selected is the center and the 2nd will define the radius length
         c = Circle(self.selected_points[0], self.selected_points[1])
+        self.objects.append(c)
 
         circle = c.bresenham()
 
         self.draw_points(circle)
+
+    # cutting
+    def cut_btn(self):
+        # pop-up for line algorithm
+        def show_radio_selector():
+            popup = Toplevel(self.root)
+            popup.title("Select Cutting Algorithm")
+
+            select = tk.StringVar()
+            select.set("Cohen-Sutherland")  # default
+
+            radio_x = tk.Radiobutton(popup, text="Cohen-Sutherland", variable=select, value="cohen")
+            radio_x.pack(anchor="w")
+
+            radio_y = tk.Radiobutton(popup, text="Liang-Barsky", variable=select, value="liang")
+            radio_y.pack(anchor="w")
+
+            ok_button = tk.Button(popup, text="OK", command=lambda: self.cut(select.get(), popup))
+            ok_button.pack()
+
+        show_radio_selector()
+    def cut(self, select, popup):
+        popup.destroy()
+
+        if self.selector.x1 > self.selector.x2:
+            xmax = self.selector.x1
+            xmin = self.selector.x2
+        else:
+            xmax = self.selector.x2
+            xmin = self.selector.x1
+        if self.selector.y1 > self.selector.y2:
+            ymax = self.selector.y1
+            ymin = self.selector.y2
+        else:
+            ymax = self.selector.y2
+            ymin = self.selector.y1
         
+        window_pmin = Point(xmin, ymin)
+        window_pmax = Point(xmax, ymax)
+        cut = Cutting(self.objects, window_pmin, window_pmax)
+
+        if select == "cohen":
+            new_objects = cut.cohen()
+        else:
+            new_objects = cut.liang()
+        
+        self.objects.clear()
+        self.points.clear()
+        self.objects.extend(new_objects)
+        self.draw_objects()
+        
+    
