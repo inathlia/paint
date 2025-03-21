@@ -5,6 +5,8 @@ class Selector:
         self.outline = "hotpink"
         self.canvas = canvas
         self.rect = self.canvas.create_rectangle(x1, y1, x2, y2, outline=self.outline, width=2)
+        # x1 and y1 are min values
+        # x2 and y2 are max values
         self.x1, self.y1, self.x2, self.y2 = x1, y1, x2, y2
         self.angle = 0
 

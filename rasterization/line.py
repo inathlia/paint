@@ -8,6 +8,9 @@ class Line:
             self.color = color
         else:
             raise TypeError("p1 and p2 must be Point type")
+        
+    def __repr__(self):
+        return f"P1({self.p1.__repr__}, P2{self.p2.__repr__})"
 
     # returns a Point array
     def dda(self):

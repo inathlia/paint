@@ -40,6 +40,7 @@ class Cutting:
                 new_objects.append(o)
         return new_objects
 
+    # Cohen --------------------------------------------------------------------------------------------------
     def get_code(self, p):
         code = INSIDE
         if p.x < self.pmin.x:
@@ -95,41 +96,40 @@ class Cutting:
             line = Line(p1, p2)
             return line
         
-    # STILL HAVE TO ADAPT THE USE OF POINTER OF U1 AND U2!!!!!!!!!!!!!!!!
-    def clip_test(self, p, q, u1, u2):
+    # Liang --------------------------------------------------------------------------------------------------
+    def clip_test(self, p, q):
         result = True
 
-        if p == 0 and q < 0:
-            result = False
-        elif p < 0:
+        if p < 0: # out-in
             r = q/p
-            if r > u2:
+            if r > self.u2:
                 result = False
-            elif r > u1:
-                u1 = r
-        elif p > 0:
+            elif r > self.u1:
+                self.u1 = r
+        elif p > 0: # in-out
             r = q/p
-            if r < u1:
+            if r < self.u1:
                 result = False
-            elif r > u2:
-                u2 = r
-        return result 
+            elif r < self.u2:
+                self.u2 = r
+        return result
 
     def run_liang(self, p1, p2):
         dx = p2.x - p1.x
         dy = p2.y - p1.y
-        u1 = 0
-        u2 = 1
+        self.u1 = 0
+        self.u2 = 1
 
-        if self.clip_test(-dx, p1.x - self.pmin.x, u1, u2): # left
-            if self.clip_test(dx, self.pmax.x - p1.x, u1, u2): # right
-                if self.clip_test(-dy, p1.y - self.pmin.y, u1, u2): # bottom
-                    if self.clip_test(dy, self.pmax.y - p1.y, u1, u2): # top
-                        if u2 < 1:
-                            p2.x = p1.x + dx * u2
-                            p2.y = p1.y + dy * u2
-                        if u1 > 0:
-                            p1.x = p1.x + dx * u1
-                            p1.y = p1.y + dy * u1
+        if self.clip_test(-dx, p1.x - self.pmin.x): # left
+            if self.clip_test(dx, self.pmax.x - p1.x): # right
+                if self.clip_test(-dy, p1.y - self.pmin.y): # bottom
+                    if self.clip_test(dy, self.pmax.y - p1.y): # top
+                        if self.u2 < 1:
+                            p2.x = p1.x + dx * self.u2
+                            p2.y = p1.y + dy * self.u2
+                        if self.u1 > 0:
+                            p1.x = p1.x + dx * self.u1
+                            p1.y = p1.y + dy * self.u1
+                        # return line object
                         line = Line(p1, p2)
                         return line

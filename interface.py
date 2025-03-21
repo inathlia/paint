@@ -435,18 +435,8 @@ class GraphicsApp:
     def cut(self, select, popup):
         popup.destroy()
 
-        if self.selector.x1 > self.selector.x2:
-            xmax = self.selector.x1
-            xmin = self.selector.x2
-        else:
-            xmax = self.selector.x2
-            xmin = self.selector.x1
-        if self.selector.y1 > self.selector.y2:
-            ymax = self.selector.y1
-            ymin = self.selector.y2
-        else:
-            ymax = self.selector.y2
-            ymin = self.selector.y1
+        xmin, ymin = self.selector.x1, self.selector.y1
+        xmax, ymax = self.selector.x2, self.selector.y2
         
         window_pmin = Point(xmin, ymin)
         window_pmax = Point(xmax, ymax)
