@@ -30,6 +30,8 @@ class GraphicsApp:
         self.objects = [] # store lines and circles points inside the canvas
         self.selected_objects = []
 
+        self.current_color = "black" # default
+
         # bind mouse events
         self.canvas.bind("<Button-1>", self.handle_button_1)
         self.canvas.bind("<B1-Motion>", self.handle_b1_motion)
@@ -115,6 +117,19 @@ class GraphicsApp:
         btn_clear = ttk.Button(self.toolbar, text="Clear", command=self.clear_btn)
         btn_clear.pack(side=tk.LEFT, padx=5, pady=5)
 
+        self.color_palette = tk.Frame(self.root, bg="lightgray")
+        self.color_palette.pack(side=tk.TOP, fill=tk.X, pady=5)  # This places it below toolbar
+
+        colors = ["black", "red", "green", "blue", "yellow", "purple", "orange", "pink"]
+
+        for color in colors:
+            btn = tk.Button(self.color_palette, bg=color, width=2, height=1, command=lambda c=color: self.set_color(c))
+            btn.pack(side=tk.LEFT, padx=2)
+
+    def set_color(self, color):
+        self.current_color = color
+        print(f"Selected color: {color}")
+
     def clear_btn(self):
         self.canvas.delete("all")
         self.points.clear()
@@ -154,12 +169,12 @@ class GraphicsApp:
     def update(self):
         self.merge_selected_objects()
         for p in self.points:
-            self.canvas.create_rectangle(round(p.x), round(p.y), round(p.x + 1), round(p.y + 1), fill="black", outline="black")
+            self.canvas.create_rectangle(round(p.x), round(p.y), round(p.x + 1), round(p.y + 1), fill=self.current_color, outline=self.current_color)
         # print(f"UPDATE")
         # print(f"Selected Points: {self.selected_points}\n------------------------------------------------------------")
         # print(f"Main Points: {self.points}\n-------------------------------------------------------------------------")
-        # print(f"Selected Objects: {self.selected_objects}\n----------------------------------------------------------")
-        # print(f"Main Objects: {self.objects}\n-----------------------------------------------------------------------")
+        print(f"Selected Objects: {self.selected_objects}\n----------------------------------------------------------")
+        print(f"Main Objects: {self.objects}\n-----------------------------------------------------------------------")
 
     # merge selected points into points list
     def merge_selected_objects(self):
@@ -168,7 +183,7 @@ class GraphicsApp:
         self.selected_points.clear()
         self.selected_objects.clear()
 
-    def draw_points(self, points, color="purple"):
+    def draw_points(self, points, color="black"):
         if self.selector_exits:
             self.canvas.delete(self.selector.rect)
         self.selector_exits = False
@@ -180,10 +195,10 @@ class GraphicsApp:
         for o in self.objects:
             if isinstance(o, Line):
                 line = o.dda()
-                self.draw_points(line)
+                self.draw_points(line, o.color)
             if isinstance(o, Circle):
                 circle = o.bresenham()
-                self.draw_points(circle)
+                self.draw_points(circle, o.color)
         self.selected_points.clear()
         self.update()
     # Manage selector for selection -----------------------------------------------------------------------------------------------
@@ -228,8 +243,8 @@ class GraphicsApp:
             # print(f"FINALIZE SELECTOR")
             # print(f"Selected Points: {self.selected_points}\n------------------------------------------------------------")
             # print(f"Main Points: {self.points}\n-------------------------------------------------------------------------")
-            # print(f"Selected Objects: {self.selected_objects}\n----------------------------------------------------------")
-            # print(f"Main Objects: {self.objects}\n-----------------------------------------------------------------------")
+            print(f"Selected Objects: {self.selected_objects}\n----------------------------------------------------------")
+            print(f"Main Objects: {self.objects}\n-----------------------------------------------------------------------")
 
     # dragging
     def start_drag_selector(self, event):
@@ -316,11 +331,11 @@ class GraphicsApp:
             if isinstance(so, Line):
                 points = [so.p1, so.p2]
                 new_so_points = trans.translate(points, dx, dy)
-                new_so = Line(new_so_points[0], new_so_points[1]) 
+                new_so = Line(new_so_points[0], new_so_points[1], so.color) 
             elif isinstance(so, Circle):
                 points = [so.p, so.r_point]
                 new_so_points = trans.translate(points, dx, dy)
-                new_so = Circle(new_so_points[0], new_so_points[1]) 
+                new_so = Circle(new_so_points[0], new_so_points[1], so.color) 
             new_selected_objects.append(new_so)
         self.selected_objects = new_selected_objects
         self.clear_after_operation()
@@ -345,11 +360,11 @@ class GraphicsApp:
             if isinstance(so, Line):
                 points = [so.p1, so.p2]
                 new_so_points = trans.rotate(points, angle, origin=(ox, oy))
-                new_so = Line(new_so_points[0], new_so_points[1]) 
+                new_so = Line(new_so_points[0], new_so_points[1], so.color) 
             elif isinstance(so, Circle):
                 points = [so.p, so.r_point]
                 new_so_points = trans.rotate(points, angle, origin=(ox, oy))
-                new_so = Circle(new_so_points[0], new_so_points[1]) 
+                new_so = Circle(new_so_points[0], new_so_points[1], so.color) 
             self.selected_objects.remove(so)
             self.selected_objects.append(new_so)
 
@@ -373,11 +388,11 @@ class GraphicsApp:
             if isinstance(so, Line):
                 points = [so.p1, so.p2]
                 new_so_points = trans.scale(points, self.sx, self.sy, (ox, oy))
-                new_so = Line(new_so_points[0], new_so_points[1]) 
+                new_so = Line(new_so_points[0], new_so_points[1], so.color) 
             elif isinstance(so, Circle):
                 points = [so.p, so.r_point]
                 new_so_points = trans.scale(points, self.sx, self.sy, (ox, oy))
-                new_so = Circle(new_so_points[0], new_so_points[1]) 
+                new_so = Circle(new_so_points[0], new_so_points[1], so.color) 
             self.selected_objects.remove(so)
             self.selected_objects.append(new_so)
 
@@ -425,11 +440,11 @@ class GraphicsApp:
             if isinstance(so, Line):
                 points = [so.p1, so.p2]
                 new_so_points = trans.reflect(points, select, (ox, oy))
-                new_so = Line(new_so_points[0], new_so_points[1]) 
+                new_so = Line(new_so_points[0], new_so_points[1], so.color) 
             elif isinstance(so, Circle):
                 points = [so.p, so.r_point]
                 new_so_points = trans.reflect(points, select, (ox, oy))
-                new_so = Circle(new_so_points[0], new_so_points[1]) 
+                new_so = Circle(new_so_points[0], new_so_points[1], so.color) 
             self.selected_objects.remove(so)
             self.selected_objects.append(new_so)
 
@@ -462,7 +477,7 @@ class GraphicsApp:
     def plot_line(self, select, popup):
         popup.destroy()
 
-        l = Line(self.selected_points[0], self.selected_points[1])
+        l = Line(self.selected_points[0], self.selected_points[1], self.current_color)
         self.objects.append(l)
         self.selected_points.remove(self.selected_points[1])
         self.selected_points.remove(self.selected_points[0])
@@ -472,7 +487,7 @@ class GraphicsApp:
         else:
             line = l.bresenham()
         
-        self.draw_points(line)
+        self.draw_points(line, l.color)
 
     def circle_btn(self):
         if len(self.selected_points) != 2:
@@ -480,14 +495,14 @@ class GraphicsApp:
             return
         
         # 1st point selected is the center and the 2nd will define the radius length
-        c = Circle(self.selected_points[0], self.selected_points[1])
+        c = Circle(self.selected_points[0], self.selected_points[1], self.current_color)
         self.objects.append(c)
         self.selected_points.remove(self.selected_points[1])
         self.selected_points.remove(self.selected_points[0])
 
         circle = c.bresenham()
 
-        self.draw_points(circle)
+        self.draw_points(circle, c.color)
 
     # cutting
     def cut_btn(self):

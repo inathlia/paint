@@ -1,7 +1,7 @@
 from point import Point
 
 class Line:
-    def __init__(self, p1, p2, color="purple"):
+    def __init__(self, p1, p2, color):
         if isinstance(p1, Point) and isinstance(p2, Point):
             self.p1 = p1
             self.p2 = p2
@@ -10,7 +10,7 @@ class Line:
             raise TypeError("p1 and p2 must be Point type")
         
     def __repr__(self):
-        return f"Line: P1({self.p1.x},{self.p1.y}), P2({self.p2.x},{self.p2.y}))"
+        return f"Line: P1({self.p1.x},{self.p1.y}), P2({self.p2.x},{self.p2.y}, Color({self.color})))"
     
     def get_pixels(self):
         return self.dda()

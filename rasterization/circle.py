@@ -3,7 +3,7 @@ import math
 from point import Point
 
 class Circle:
-    def __init__(self, p, r, color="purple"):
+    def __init__(self, p, r, color):
         if isinstance(p, Point) and isinstance(r, Point):
             self.p = p
             self.r_point = r
@@ -14,7 +14,7 @@ class Circle:
             raise TypeError("p and r must be Point type")
         
     def __repr__(self):
-        return f"Circle: P({self.p.x},{self.p.y}), R({self.r}))"
+        return f"Circle: P({self.p.x},{self.p.y}), R({self.r}), Color({self.color}))"
 
     def get_pixels(self):
         return self.bresenham()
