@@ -13,7 +13,7 @@ from cutting import Cutting
 class GraphicsApp:
     def __init__(self, root):
         self.root = root
-        self.root.title("Computer Graphics Application")
+        self.root.title("Paint")
 
         # toolbar with buttons
         self.toolbar = tk.Frame(root)
