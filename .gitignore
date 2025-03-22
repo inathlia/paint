@@ -1,1 +1,6 @@
 __pycache__/*
+build/*
+dist/*
+.git
+*.spec
+python-3.13.2-amd64.exe
