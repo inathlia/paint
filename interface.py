@@ -93,7 +93,7 @@ class GraphicsApp:
 
     # Buttons ---------------------------------------------------------------------------------------------------------------------
     def add_buttons(self):
-        btn_translate = ttk.Button(self.toolbar, text="Translate", command=self.translate_btn)
+        btn_translate = ttk.Button(self.toolbar, text="Translade", command=self.translate_btn)
         btn_translate.pack(side=tk.LEFT, padx=5, pady=5)
 
         btn_rotate = ttk.Button(self.toolbar, text="Rotate", command=self.rotate_btn)
@@ -146,7 +146,7 @@ class GraphicsApp:
 
     def clear_after_operation(self):
         self.canvas.delete("all")
-        self.selected_points.clear()
+        self.remove_selected_points_from_objects()
         self.selector = None
         self.selector_exits = False
         self.is_rotating = False
@@ -178,10 +178,21 @@ class GraphicsApp:
 
     # merge selected points into points list
     def merge_selected_objects(self):
+        self.remove_selected_points_from_objects()
         self.points.extend(self.selected_points)
         self.objects.extend(self.selected_objects)
-        self.selected_points.clear()
         self.selected_objects.clear()
+        self.selected_points.clear()
+
+    def remove_selected_points_from_objects(self):
+        for p in self.selected_points:
+            for o in self.objects:
+                if isinstance(o, Line):
+                    if p == o.p1 or p == o.p2:
+                        self.selected_points.remove(p)
+                elif isinstance(o, Circle):
+                    if p == o.p or p == o.r_point:
+                        self.selected_points.remove(p)
 
     def draw_points(self, points, color="black"):
         if self.selector_exits:
@@ -189,6 +200,12 @@ class GraphicsApp:
         self.selector_exits = False
         for p in points:
             self.canvas.create_oval(p.x, p.y, p.x + 1, p.y + 1, fill=color, outline=color)
+
+        # print(f"UPDATE")
+        # print(f"Selected Points: {self.selected_points}\n------------------------------------------------------------")
+        # print(f"Main Points: {self.points}\n-------------------------------------------------------------------------")
+        # print(f"Selected Objects: {self.selected_objects}\n----------------------------------------------------------")
+        # print(f"Main Objects: {self.objects}\n-----------------------------------------------------------------------")
 
     def draw_objects(self):
         self.canvas.delete("all")
