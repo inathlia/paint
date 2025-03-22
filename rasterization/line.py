@@ -10,7 +10,10 @@ class Line:
             raise TypeError("p1 and p2 must be Point type")
         
     def __repr__(self):
-        return f"P1({self.p1.__repr__}, P2{self.p2.__repr__})"
+        return f"Line: P1({self.p1.x},{self.p1.y}), P2({self.p2.x},{self.p2.y}))"
+    
+    def get_pixels(self):
+        return self.dda()
 
     # returns a Point array
     def dda(self):
@@ -39,8 +42,8 @@ class Line:
     def bresenham(self):
         line = []
 
-        x1, y1 = self.p1.x, self.p1.y
-        x2, y2 = self.p2.x, self.p2.y
+        x1, y1 = int(self.p1.x), int(self.p1.y)
+        x2, y2 = int(self.p2.x), int(self.p2.y)
 
         dx = x2 - x1
         dy = y2 - y1

@@ -28,6 +28,7 @@ class GraphicsApp:
         self.points = []
         self.selected_points = []
         self.objects = [] # store lines and circles points inside the canvas
+        self.selected_objects = []
 
         # bind mouse events
         self.canvas.bind("<Button-1>", self.handle_button_1)
@@ -119,6 +120,7 @@ class GraphicsApp:
         self.points.clear()
         self.selected_points.clear()
         self.objects.clear()
+        self.selected_objects.clear()
         self.selector = None
         self.selector_exits = False
         self.is_rotating = False
@@ -129,6 +131,7 @@ class GraphicsApp:
 
     def clear_after_operation(self):
         self.canvas.delete("all")
+        self.selected_points.clear()
         self.selector = None
         self.selector_exits = False
         self.is_rotating = False
@@ -149,24 +152,28 @@ class GraphicsApp:
 
     # update canvas with points
     def update(self):
-        self.merge_selected_points()
+        self.merge_selected_objects()
         for p in self.points:
             self.canvas.create_rectangle(round(p.x), round(p.y), round(p.x + 1), round(p.y + 1), fill="black", outline="black")
-
-        # print(f"Objects: {self.objects}")
+        # print(f"UPDATE")
+        # print(f"Selected Points: {self.selected_points}\n------------------------------------------------------------")
+        # print(f"Main Points: {self.points}\n-------------------------------------------------------------------------")
+        # print(f"Selected Objects: {self.selected_objects}\n----------------------------------------------------------")
+        # print(f"Main Objects: {self.objects}\n-----------------------------------------------------------------------")
 
     # merge selected points into points list
-    def merge_selected_points(self):
+    def merge_selected_objects(self):
         self.points.extend(self.selected_points)
+        self.objects.extend(self.selected_objects)
         self.selected_points.clear()
+        self.selected_objects.clear()
 
     def draw_points(self, points, color="purple"):
-        self.canvas.delete(self.selector.rect)
+        if self.selector_exits:
+            self.canvas.delete(self.selector.rect)
         self.selector_exits = False
         for p in points:
             self.canvas.create_oval(p.x, p.y, p.x + 1, p.y + 1, fill=color, outline=color)
-            self.points.append(p)
-        self.merge_selected_points()
 
     def draw_objects(self):
         self.canvas.delete("all")
@@ -177,13 +184,15 @@ class GraphicsApp:
             if isinstance(o, Circle):
                 circle = o.bresenham()
                 self.draw_points(circle)
+        self.selected_points.clear()
+        self.update()
     # Manage selector for selection -----------------------------------------------------------------------------------------------
     # selector starts as the pixel where the user clicked
     def start_select_area(self, event):
         if self.selector:
             # delete if already exist a selector
             self.canvas.delete(self.selector.rect)
-            self.merge_selected_points()
+            self.merge_selected_objects()
         self.rect_start = (event.x, event.y)
         self.selector = Selector(self.canvas, event.x, event.y, event.x, event.y)
         self.selector_exits = True
@@ -199,16 +208,28 @@ class GraphicsApp:
             x1, x2 = min(x1, x2), max(x1, x2)
             y1, y2 = min(y1, y2), max(y1, y2)
 
-            # divide points that are inside and outside the selector
-            self.selected_points = [
-                p for p in self.points if x1 <= p.x <= x2 and y1 <= p.y <= y2
-            ]
+            # divide points and objects that are inside and outside the selector
+            self.selected_objects.extend(o for o in self.objects if any(x1 <= p.x <= x2 and y1 <= p.y <= y2 for p in o.get_pixels()))
+            self.objects = [o for o in self.objects if o not in self.selected_objects]   
+
+            self.selected_points = [p for p in self.points if x1 <= p.x <= x2 and y1 <= p.y <= y2]
             self.points = [p for p in self.points if not (x1 <= p.x <= x2 and y1 <= p.y <= y2)]
+
+            for o in self.selected_objects:
+                if isinstance(o, Line):
+                    self.selected_points.append(o.p1)
+                    self.selected_points.append(o.p2)
+                elif isinstance(o, Circle):
+                    self.selected_points.append(o.p)
+                    self.selected_points.append(o.r_point) 
 
             self.selector.update_position(x1, y1, x2, y2)
 
-            # print(f"Selected Points: {self.selected_points}")
-            # print(f"Main Points: {self.points}")
+            # print(f"FINALIZE SELECTOR")
+            # print(f"Selected Points: {self.selected_points}\n------------------------------------------------------------")
+            # print(f"Main Points: {self.points}\n-------------------------------------------------------------------------")
+            # print(f"Selected Objects: {self.selected_objects}\n----------------------------------------------------------")
+            # print(f"Main Objects: {self.objects}\n-----------------------------------------------------------------------")
 
     # dragging
     def start_drag_selector(self, event):
@@ -281,7 +302,7 @@ class GraphicsApp:
     def translate_btn(self):
         trans = Transformations(self.selected_points)
 
-        if not self.selected_points:
+        if not self.selected_points and not self.selected_objects:
             messagebox.showinfo("Error", "No points selected for translation.")
             return
 
@@ -290,12 +311,25 @@ class GraphicsApp:
 
         self.selected_points = trans.translate(self.selected_points, dx, dy)
 
+        new_selected_objects = []
+        for so in self.selected_objects:
+            if isinstance(so, Line):
+                points = [so.p1, so.p2]
+                new_so_points = trans.translate(points, dx, dy)
+                new_so = Line(new_so_points[0], new_so_points[1]) 
+            elif isinstance(so, Circle):
+                points = [so.p, so.r_point]
+                new_so_points = trans.translate(points, dx, dy)
+                new_so = Circle(new_so_points[0], new_so_points[1]) 
+            new_selected_objects.append(new_so)
+        self.selected_objects = new_selected_objects
         self.clear_after_operation()
+        self.draw_objects()
 
     def rotate_btn(self):
         trans = Transformations(self.selected_points)
 
-        if not self.selected_points:
+        if not self.selected_points and not self.selected_objects:
             messagebox.showinfo("Error", "No points selected for rotation.")
             return
 
@@ -307,12 +341,25 @@ class GraphicsApp:
 
         self.selected_points = trans.rotate(self.selected_points, angle, origin=(ox, oy))
 
+        for so in self.selected_objects:
+            if isinstance(so, Line):
+                points = [so.p1, so.p2]
+                new_so_points = trans.rotate(points, angle, origin=(ox, oy))
+                new_so = Line(new_so_points[0], new_so_points[1]) 
+            elif isinstance(so, Circle):
+                points = [so.p, so.r_point]
+                new_so_points = trans.rotate(points, angle, origin=(ox, oy))
+                new_so = Circle(new_so_points[0], new_so_points[1]) 
+            self.selected_objects.remove(so)
+            self.selected_objects.append(new_so)
+
         self.clear_after_operation()
+        self.draw_objects()
 
     def scale_btn(self):
         trans = Transformations(self.selected_points)
 
-        if not self.selected_points:
+        if not self.selected_points and not self.selected_objects:
             messagebox.showinfo("Error", "No points selected for scale.")
             return
         
@@ -322,7 +369,20 @@ class GraphicsApp:
 
         self.selected_points = trans.scale(self.selected_points, self.sx, self.sy, (ox, oy))
 
+        for so in self.selected_objects:
+            if isinstance(so, Line):
+                points = [so.p1, so.p2]
+                new_so_points = trans.scale(points, self.sx, self.sy, (ox, oy))
+                new_so = Line(new_so_points[0], new_so_points[1]) 
+            elif isinstance(so, Circle):
+                points = [so.p, so.r_point]
+                new_so_points = trans.scale(points, self.sx, self.sy, (ox, oy))
+                new_so = Circle(new_so_points[0], new_so_points[1]) 
+            self.selected_objects.remove(so)
+            self.selected_objects.append(new_so)
+
         self.clear_after_operation()
+        self.draw_objects()
 
     def reflect_btn(self):
         # pop-up for axis selection
@@ -345,7 +405,7 @@ class GraphicsApp:
             ok_button = tk.Button(popup, text="OK", command=lambda: self.apply_reflection(select.get(), popup))
             ok_button.pack()
 
-        if not self.selected_points:
+        if not self.selected_points and not self.selected_objects:
             messagebox.showinfo("Error", "No points selected for reflection.")
             return
 
@@ -361,7 +421,20 @@ class GraphicsApp:
 
         self.selected_points = trans.reflect(self.selected_points, select, (ox, oy))
 
+        for so in self.selected_objects:
+            if isinstance(so, Line):
+                points = [so.p1, so.p2]
+                new_so_points = trans.reflect(points, select, (ox, oy))
+                new_so = Line(new_so_points[0], new_so_points[1]) 
+            elif isinstance(so, Circle):
+                points = [so.p, so.r_point]
+                new_so_points = trans.reflect(points, select, (ox, oy))
+                new_so = Circle(new_so_points[0], new_so_points[1]) 
+            self.selected_objects.remove(so)
+            self.selected_objects.append(new_so)
+
         self.clear_after_operation()
+        self.draw_objects()
 
     # rasterization
     def line_btn(self):
@@ -391,6 +464,8 @@ class GraphicsApp:
 
         l = Line(self.selected_points[0], self.selected_points[1])
         self.objects.append(l)
+        self.selected_points.remove(self.selected_points[1])
+        self.selected_points.remove(self.selected_points[0])
 
         if select == "dda":
             line = l.dda()
@@ -407,6 +482,8 @@ class GraphicsApp:
         # 1st point selected is the center and the 2nd will define the radius length
         c = Circle(self.selected_points[0], self.selected_points[1])
         self.objects.append(c)
+        self.selected_points.remove(self.selected_points[1])
+        self.selected_points.remove(self.selected_points[0])
 
         circle = c.bresenham()
 
@@ -440,6 +517,7 @@ class GraphicsApp:
         
         window_pmin = Point(xmin, ymin)
         window_pmax = Point(xmax, ymax)
+        self.objects.extend(self.selected_objects)
         cut = Cutting(self.objects, window_pmin, window_pmax)
 
         if select == "cohen":

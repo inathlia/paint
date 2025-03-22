@@ -6,11 +6,18 @@ class Circle:
     def __init__(self, p, r, color="purple"):
         if isinstance(p, Point) and isinstance(r, Point):
             self.p = p
+            self.r_point = r
             self.r = math.sqrt(abs(p.x - r.x)**2 + abs(p.y - r.y)**2)
             self.color = color
             self.circ = []
         else:
             raise TypeError("p and r must be Point type")
+        
+    def __repr__(self):
+        return f"Circle: P({self.p.x},{self.p.y}), R({self.r}))"
+
+    def get_pixels(self):
+        return self.bresenham()
 
     def bresenham(self):
         x, y = 0, self.r
