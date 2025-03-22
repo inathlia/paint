@@ -21,7 +21,7 @@ class Cutting:
         new_objects = []
         for o in self.objects:
             if isinstance(o, Line):
-                new_line = self.run_cohen(o.p1, o.p2)
+                new_line = self.run_cohen(o.p1, o.p2, o.color)
                 new_objects.append(new_line)
             else:
                 # nothing happens
@@ -33,7 +33,7 @@ class Cutting:
         new_objects = []
         for o in self.objects:
             if isinstance(o, Line):
-                new_line = self.run_liang(o.p1, o.p2)
+                new_line = self.run_liang(o.p1, o.p2, o.color)
                 new_objects.append(new_line)
             else:
                 # nothing happens
@@ -56,7 +56,7 @@ class Cutting:
     def bit(self, position, value):
         return (value >> position) & 1
 
-    def run_cohen(self, p1, p2):
+    def run_cohen(self, p1, p2, color):
         done = False
         accept = False
         line = []
@@ -93,7 +93,7 @@ class Cutting:
         
         if accept:
             # return line object
-            line = Line(p1, p2)
+            line = Line(p1, p2, color)
             return line
         
     # Liang --------------------------------------------------------------------------------------------------
@@ -114,7 +114,7 @@ class Cutting:
                 self.u2 = r
         return result
 
-    def run_liang(self, p1, p2):
+    def run_liang(self, p1, p2, color):
         dx = p2.x - p1.x
         dy = p2.y - p1.y
         self.u1 = 0
@@ -131,5 +131,5 @@ class Cutting:
                             p1.x = p1.x + dx * self.u1
                             p1.y = p1.y + dy * self.u1
                         # return line object
-                        line = Line(p1, p2)
+                        line = Line(p1, p2, color)
                         return line

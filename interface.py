@@ -128,7 +128,7 @@ class GraphicsApp:
 
     def set_color(self, color):
         self.current_color = color
-        print(f"Selected color: {color}")
+        # print(f"Selected color: {color}")
 
     def clear_btn(self):
         self.canvas.delete("all")
@@ -173,8 +173,8 @@ class GraphicsApp:
         # print(f"UPDATE")
         # print(f"Selected Points: {self.selected_points}\n------------------------------------------------------------")
         # print(f"Main Points: {self.points}\n-------------------------------------------------------------------------")
-        print(f"Selected Objects: {self.selected_objects}\n----------------------------------------------------------")
-        print(f"Main Objects: {self.objects}\n-----------------------------------------------------------------------")
+        # print(f"Selected Objects: {self.selected_objects}\n----------------------------------------------------------")
+        # print(f"Main Objects: {self.objects}\n-----------------------------------------------------------------------")
 
     # merge selected points into points list
     def merge_selected_objects(self):
@@ -243,8 +243,8 @@ class GraphicsApp:
             # print(f"FINALIZE SELECTOR")
             # print(f"Selected Points: {self.selected_points}\n------------------------------------------------------------")
             # print(f"Main Points: {self.points}\n-------------------------------------------------------------------------")
-            print(f"Selected Objects: {self.selected_objects}\n----------------------------------------------------------")
-            print(f"Main Objects: {self.objects}\n-----------------------------------------------------------------------")
+            # print(f"Selected Objects: {self.selected_objects}\n----------------------------------------------------------")
+            # print(f"Main Objects: {self.objects}\n-----------------------------------------------------------------------")
 
     # dragging
     def start_drag_selector(self, event):
